@@ -1,15 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Monsieur+La+Doulaise&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Passion+One:wght@400;700;900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
 @import "tailwindcss";
 @import "./theme.css";
+
 html, body, #root {
   height: 100%;
 }
 
 body {
   font-family: "Inter", sans-serif;
-  background-color: var(--color-cream);
-  color: #0f172a;
-  /* dark text */
+  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 50%, #ffffff 100%);
+  color: #1a1a1a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -17,7 +17,7 @@ body {
 /* Headings use Poppins for a friendly, strong look */
 h1, h2, h3, h4, h5 {
   font-family: 'Poppins', 'Montserrat', sans-serif;
-  color: #083344;
+  color: #dc2626;
 }
 
 /* Utility adjustments to match design language */

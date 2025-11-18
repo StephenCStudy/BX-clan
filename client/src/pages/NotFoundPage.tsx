@@ -1,115 +1,107 @@
-import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { HiHome, HiArrowLeft, HiSearch } from "react-icons/hi";
 
-const NotFoundPage: React.FC = () => {
+export default function NotFoundPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-(--color-cream) via-white to-(--color-pastel) flex items-center justify-center px-4 py-16">
+    <div className="min-h-screen bg-linear-to-br from-[#0b0b0d] via-[#111118] to-[#1a0a0a] flex items-center justify-center px-4 py-16">
       <div className="max-w-2xl w-full text-center">
-        {/* 404 Animation */}
-        <div className="relative mb-8">
-          <div className="text-[180px] font-heading font-bold text-(--color-pastel) leading-none select-none">
+        {/* 404 Animation - Wild Rift Theme */}
+        <div className="relative mb-12">
+          <div className="text-[200px] font-bold text-transparent bg-clip-text bg-linear-to-r from-red-600 via-red-500 to-red-700 leading-none select-none animate-pulse">
             404
           </div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-32 h-32 bg-(--color-primary) rounded-full opacity-10 animate-ping"></div>
+            <div className="w-40 h-40 bg-red-600 rounded-full opacity-10 animate-ping"></div>
           </div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <HiSearch className="w-24 h-24 text-(--color-primary) animate-bounce" />
+            <span className="text-8xl animate-bounce">🎮</span>
           </div>
         </div>
 
         {/* Error Message */}
-        <div className="mb-8 space-y-4">
-          <h1 className="text-4xl font-heading font-bold text-[#083344] mb-4">
+        <div className="mb-12 space-y-4">
+          <h1 className="text-4xl font-bold text-white mb-4 drop-shadow-lg">
             Không tìm thấy trang
           </h1>
-          <p className="text-lg text-muted max-w-md mx-auto">
-            Rất tiếc, trang bạn đang tìm kiếm không tồn tại hoặc đã được di
-            chuyển. Vui lòng kiểm tra lại đường dẫn hoặc quay về trang chủ.
+          <p className="text-lg text-gray-400 max-w-md mx-auto">
+            Trang bạn đang tìm kiếm không tồn tại hoặc đã bị di chuyển. Hãy quay
+            về trang chủ để tiếp tục khám phá Clan!
           </p>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
           <button
             onClick={() => navigate(-1)}
-            className="group flex items-center gap-2 px-6 py-3 border-2 border-(--color-primary) text-(--color-primary) rounded-xl font-semibold hover:bg-(--color-primary) hover:text-white transition-all duration-300 hover:scale-105 hover:shadow-lg"
+            className="group flex items-center gap-2 px-8 py-3 border-2 border-red-600 text-red-500 rounded-lg font-semibold hover:bg-red-600 hover:text-white transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-red-600/50"
           >
-            <HiArrowLeft className="w-5 h-5 transition-transform duration-300 group-hover:-translate-x-1" />
+            <span className="text-xl transition-transform duration-300 group-hover:-translate-x-1">
+              ←
+            </span>
             Quay lại
           </button>
 
           <Link
             to="/"
-            className="group flex items-center gap-2 px-6 py-3 bg-(--color-primary) text-white rounded-xl font-semibold hover:bg-(--color-primary)/90 transition-all duration-300 hover:scale-105 hover:shadow-lg"
+            className="group flex items-center gap-2 px-8 py-3 bg-linear-to-r from-red-700 to-red-600 text-white rounded-lg font-semibold hover:from-red-600 hover:to-red-500 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-red-600/50"
           >
-            <HiHome className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+            <span className="text-xl transition-transform duration-300 group-hover:scale-110">
+              🏠
+            </span>
             Về trang chủ
-          </Link>
-
-          <Link
-            to="/posts"
-            className="group flex items-center gap-2 px-6 py-3 bg-(--color-accent) text-[#083344] rounded-xl font-semibold hover:bg-(--color-accent)/90 transition-all duration-300 hover:scale-105 hover:shadow-lg"
-          >
-            <HiSearch className="w-5 h-5 transition-transform duration-300 group-hover:rotate-12" />
-            Xem tin đăng
           </Link>
         </div>
 
         {/* Decorative Elements */}
-        <div className="mt-16 grid grid-cols-3 gap-4 max-w-md mx-auto opacity-50">
+        <div className="mt-12 grid grid-cols-3 gap-4 max-w-md mx-auto">
           <div
-            className="h-2 bg-(--color-primary) rounded-full animate-pulse"
+            className="h-1.5 bg-linear-to-r from-red-700 to-red-600 rounded-full animate-pulse"
             style={{ animationDelay: "0s" }}
           ></div>
           <div
-            className="h-2 bg-(--color-accent) rounded-full animate-pulse"
-            style={{ animationDelay: "0.2s" }}
+            className="h-1.5 bg-linear-to-r from-red-600 to-red-500 rounded-full animate-pulse"
+            style={{ animationDelay: "0.3s" }}
           ></div>
           <div
-            className="h-2 bg-(--color-primary) rounded-full animate-pulse"
-            style={{ animationDelay: "0.4s" }}
+            className="h-1.5 bg-linear-to-r from-red-700 to-red-600 rounded-full animate-pulse"
+            style={{ animationDelay: "0.6s" }}
           ></div>
         </div>
 
         {/* Popular Links */}
-        <div className="mt-12 p-6 bg-white rounded-2xl shadow-soft">
-          <h3 className="text-lg font-heading font-semibold text-[#083344] mb-4">
-            Các trang phổ biến
+        <div className="mt-12 p-6 bg-[#1a1a22] rounded-xl border border-red-900/20 shadow-xl">
+          <h3 className="text-xl font-bold text-red-500 mb-6">
+            🔥 Các trang phổ biến
           </h3>
-          <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-2 gap-4">
             <Link
-              to="/posts"
-              className="text-left px-4 py-2 rounded-lg hover:bg-(--color-pastel) hover:text-(--color-primary) transition-colors"
+              to="/members"
+              className="text-left px-4 py-3 rounded-lg bg-[#111118] hover:bg-red-900/30 hover:text-red-400 text-gray-300 transition-all duration-300 hover:scale-105 hover:shadow-md"
             >
-              📋 Danh sách tin đăng
+              👥 Thành viên
             </Link>
             <Link
-              to="/add-post"
-              className="text-left px-4 py-2 rounded-lg hover:bg-(--color-pastel) hover:text-(--color-primary) transition-colors"
+              to="/customs"
+              className="text-left px-4 py-3 rounded-lg bg-[#111118] hover:bg-red-900/30 hover:text-red-400 text-gray-300 transition-all duration-300 hover:scale-105 hover:shadow-md"
             >
-              ✨ Đăng tin mới
+              🎮 Custom Game
             </Link>
             <Link
-              to="/profile"
-              className="text-left px-4 py-2 rounded-lg hover:bg-(--color-pastel) hover:text-(--color-primary) transition-colors"
+              to="/news"
+              className="text-left px-4 py-3 rounded-lg bg-[#111118] hover:bg-red-900/30 hover:text-red-400 text-gray-300 transition-all duration-300 hover:scale-105 hover:shadow-md"
             >
-              👤 Trang cá nhân
+              📰 Tin tức
             </Link>
             <Link
-              to="/support"
-              className="text-left px-4 py-2 rounded-lg hover:bg-(--color-pastel) hover:text-(--color-primary) transition-colors"
+              to="/chat"
+              className="text-left px-4 py-3 rounded-lg bg-[#111118] hover:bg-red-900/30 hover:text-red-400 text-gray-300 transition-all duration-300 hover:scale-105 hover:shadow-md"
             >
-              💬 Hỗ trợ khách hàng
+              💬 Chat
             </Link>
           </div>
         </div>
       </div>
     </div>
   );
-};
-
-export default NotFoundPage;
+}

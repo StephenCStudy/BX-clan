@@ -1,0 +1,44 @@
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
+import authRoutes from "./routes/auth.js";
+import clanRoutes from "./routes/clan.js";
+import memberRoutes from "./routes/members.js";
+import customRoutes from "./routes/customs.js";
+import registrationRoutes from "./routes/registrations.js";
+import reportRoutes from "./routes/reports.js";
+import newsRoutes from "./routes/news.js";
+import streamRoutes from "./routes/streams.js";
+import chatRoutes from "./routes/chat.js";
+import { errorHandler } from "./utils/errorHandler.js";
+
+dotenv.config();
+
+const app = express();
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN?.split(",") || "*",
+    credentials: true,
+  })
+);
+app.use(express.json());
+app.use(cookieParser());
+
+app.get("/", (_req, res) => {
+  res.send("API is running...");
+});
+
+app.use("/api/auth", authRoutes);
+app.use("/api/clan", clanRoutes);
+app.use("/api/members", memberRoutes);
+app.use("/api/customs", customRoutes);
+app.use("/api/registrations", registrationRoutes);
+app.use("/api/reports", reportRoutes);
+app.use("/api/news", newsRoutes);
+app.use("/api/streams", streamRoutes);
+app.use("/api/chat", chatRoutes);
+
+app.use(errorHandler);
+
+export default app;

@@ -1,73 +1,56 @@
 **Role Permissions & Usage**
 
-Tài liệu này mô tả các role có trong hệ thống và quyền tương ứng, cách seed (tạo) tài khoản `leader` mặc định, và một vài ví dụ API hữu ích để quản lý role.
+# Hướng dẫn vai trò (dành cho khách hàng)
 
-**Overview:**
+Tài liệu này giải thích rõ ràng từng vai trò trong cộng đồng BX Clan, những việc nên làm, và những quyền họ có — viết bằng ngôn ngữ dễ hiểu, không dùng từ chuyên sâu kỹ thuật.
 
-- User model có 4 role: `leader`, `organizer`, `moderator`, `member`.
-- Middleware kiểm tra quyền: `requireAuth` (cần token JWT) và `requireRoles(...)` (chỉ cho phép các role được liệt kê).
+## Tổng quan nhanh
 
-**Leader (quyền cao nhất)**
+- Hệ thống có 4 vai trò chính: **Leader**, **Organizer**, **Moderator**, và **Member**.
+- Mỗi vai trò có trách nhiệm khác nhau. Vai trò càng cao thì có nhiều quyền hơn.
 
-- Quyền chính:
-  - Thay đổi role của thành viên (PUT `/api/members/:id/role`).
-  - Xóa thành viên (DELETE `/api/members/:id`).
-  - Quản lý registrations, customs, news, reports và streams (hầu hết các endpoint quản trị cho `organizer`/`leader`/`moderator`).
-  - Có thể thực hiện tất cả hành động mà `organizer` và `moderator` làm.
-- Endpoints liên quan (ví dụ):
-  - `PUT /api/members/:id/role` (requireRoles: `leader`, `organizer`, `moderator`)
-  - `DELETE /api/members/:id` (requireRoles: `leader`, `organizer`, `moderator`)
-  - Nhiều route như `/api/registrations`, `/api/customs`, `/api/news`, `/api/reports`, `/api/streams` có thể cho phép `leader`.
+## Leader — Người quản lý chính
 
-**Organizer**
+- Nên làm:
+  - Quyết định chính sách của clan (quy tắc, tiêu chí tuyển thành viên).
+  - Chỉ định Organizer hoặc Moderator khi cần.
+  - Xóa hoặc sửa tài khoản gây phiền phức.
+- Có thể làm:
+  - Thay đổi vai trò của thành viên (ví dụ nâng thành Organizer).
+  - Xóa thành viên khỏi hệ thống.
+  - Quản lý tất cả phần việc do Organizer và Moderator làm.
+- Không nên làm:
+  - Lạm dụng quyền để gỡ hoặc thay đổi nội dung cá nhân mà không có lý do rõ ràng.
 
-- Quyền chính:
-  - Tạo/điều phối `custom rooms`, quản lý registrations, đăng bài news, tổ chức stream.
-  - Duyệt / xử lý đăng ký (registrations).
-- Endpoints liên quan (ví dụ):
-  - `/api/streams` (requireRoles: `organizer`, `leader`)
-  - `/api/registrations` (requireRoles: `organizer`, `leader`, `moderator`)
-  - `/api/customs`, `/api/news` (thường cho `organizer`, `leader`, `moderator`).
+## Organizer — Người điều phối sự kiện
 
-**Moderator**
+- Nên làm:
+  - Tạo và quản lý lịch custom game, stream, sự kiện cộng đồng.
+  - Duyệt và xử lý các đăng ký tham gia sự kiện.
+  - Đăng thông báo, tin tức liên quan hoạt động của clan.
+- Có thể làm:
+  - Quản lý rooms, chấp nhận/ từ chối đăng ký.
+  - Hỗ trợ Leader trong công tác tổ chức.
+- Không nên làm:
+  - Thực hiện các thay đổi mang tính xử phạt trừ khi có sự đồng thuận của Leader/Moderator.
 
-- Quyền chính:
-  - Xử lý báo cáo (reports), moderating nội dung chat, hỗ trợ ban/kick thành viên.
-  - Duyệt báo cáo và thực hiện hành động xử lý.
-- Endpoints liên quan (ví dụ):
-  - `/api/reports` (requireRoles: `moderator`, `organizer`, `leader`)
-  - Một số hành động trong `/api/customs`, `/api/registrations`, `/api/news` có thể cho phép `moderator`.
+## Moderator — Người hỗ trợ quản trị
 
-**Member**
+- Nên làm:
+  - Xử lý báo cáo vi phạm (ví dụ hành vi gây rối, spam).
+  - Giữ trật tự trong chat và phòng chơi.
+  - Hỗ trợ Organizer trong việc kiểm tra đăng ký.
+- Có thể làm:
+  - Ẩn / báo cáo nội dung vi phạm hoặc yêu cầu Leader can thiệp.
+- Không nên làm:
+  - Lạm dụng quyền để trấn áp thành viên mà không có bằng chứng.
 
-- Quyền chính:
+## Member — Thành viên bình thường
 
-  - Tham gia clan, xem danh sách members, đăng ký tham gia custom games, xem news và thông báo.
-  - Không có quyền quản trị: không thể thay role, xóa người khác, hoặc truy cập endpoint quản trị.
-
-- Thay đổi role (ví dụ chuyển user thành `organizer`):
-
-  curl (ví dụ):
-
-  ```bash
-  curl -X PUT "http://localhost:5000/api/members/<USER_ID>/role" \
-    -H "Authorization: Bearer <JWT_TOKEN>" \
-    -H "Content-Type: application/json" \
-    -d '{"role":"organizer"}'
-  ```
-
-- Ghi chú: endpoint yêu cầu token của một user có role `leader`/`organizer`/`moderator`.
-
-Seeding (tạo leader mặc định)
-
-- Tôi đã thêm logic seed vào `api/src/scripts/seed.ts` để:
-  - Xóa dữ liệu cũ.
-  - Tạo một `Clan` mặc định ("BX Clan").
-  - Tạo 1 tài khoản `leader` với mật khẩu đã hash.
-- Mặc định các giá trị:
-
-  - `username`: `leader`
-  - `password`: `Leader@1234`
-  - `ingameName`: `BX_Leader`
-  - `role`: `leader`
-  - `rank`: `Grandmaster`
+- Nên làm:
+  - Tham gia sự kiện, tôn trọng quy định của clan.
+  - Báo cáo vi phạm khi thấy.
+- Có thể làm:
+  - Xem tin tức, đăng ký tham gia custom game, gửi yêu cầu mời.
+- Không thể:
+  - Thay đổi vai trò người khác hoặc xóa thành viên.

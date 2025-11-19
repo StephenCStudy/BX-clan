@@ -43,7 +43,7 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="https://discord.gg/bxclan"
+                  href="https://discord.gg/AkuphZ4K"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 hover:text-red-400 transition"

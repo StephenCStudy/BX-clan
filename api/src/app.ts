@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
+import "./models/GameRoom.js"; // Ensure GameRoom model is registered
 import authRoutes from "./routes/auth.js";
 import clanRoutes from "./routes/clan.js";
 import memberRoutes from "./routes/members.js";
@@ -12,6 +13,7 @@ import newsRoutes from "./routes/news.js";
 import streamRoutes from "./routes/streams.js";
 import chatRoutes from "./routes/chat.js";
 import notificationRoutes from "./routes/notifications.js";
+import privateMessageRoutes from "./routes/privateMessages.js";
 import { errorHandler } from "./utils/errorHandler.js";
 
 dotenv.config();
@@ -40,6 +42,7 @@ app.use("/api/news", newsRoutes);
 app.use("/api/streams", streamRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/private-messages", privateMessageRoutes);
 
 app.use(errorHandler);
 

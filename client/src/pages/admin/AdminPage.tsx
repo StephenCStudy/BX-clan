@@ -48,6 +48,7 @@ export default function AdminPage() {
   const [showRegistrationListModal, setShowRegistrationListModal] =
     useState(false);
   const [registrationList, setRegistrationList] = useState<any[]>([]);
+  const [loadingRegistrations, setLoadingRegistrations] = useState(false);
   const [selectedNewsForRegistrations, setSelectedNewsForRegistrations] =
     useState<string | null>(null);
   const [allMembersForAdd, setAllMembersForAdd] = useState<any[]>([]);
@@ -221,13 +222,32 @@ export default function AdminPage() {
   };
 
   const loadRegistrationList = async (newsId: string) => {
+    setLoadingRegistrations(true);
     try {
+      console.log("Loading registrations for newsId:", newsId);
       const res = await http.get(`/registrations/news/${newsId}`);
-      setRegistrationList(res.data);
+      console.log("Registration response:", res.data);
+
+      if (!res.data) {
+        setRegistrationList([]);
+      } else if (Array.isArray(res.data)) {
+        setRegistrationList(res.data);
+      } else if (res.data.items && Array.isArray(res.data.items)) {
+        setRegistrationList(res.data.items);
+      } else {
+        console.error("Unexpected data format:", res.data);
+        setRegistrationList([]);
+      }
+
       setSelectedNewsForRegistrations(newsId);
       setShowRegistrationListModal(true);
-    } catch (err) {
-      toast.error("Lỗi tải danh sách đăng ký");
+    } catch (err: any) {
+      console.error("Error loading registrations:", err);
+      console.error("Error response:", err.response?.data);
+      console.error("Error status:", err.response?.status);
+      toast.error(err.response?.data?.message || "Lỗi tải danh sách đăng ký");
+    } finally {
+      setLoadingRegistrations(false);
     }
   };
 
@@ -1589,7 +1609,12 @@ export default function AdminPage() {
               </button>
             </div>
 
-            {registrationList.length === 0 ? (
+            {loadingRegistrations ? (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+                <p className="text-gray-600 mt-2">Đang tải...</p>
+              </div>
+            ) : registrationList.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 Chưa có đăng ký nào
               </div>

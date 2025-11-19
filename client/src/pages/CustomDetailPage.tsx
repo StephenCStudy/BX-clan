@@ -79,7 +79,6 @@ export default function CustomDetailPage() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [allMembers, setAllMembers] = useState<any[]>([]);
   const [selectedInvite, setSelectedInvite] = useState<string | null>(null);
-  const [isInRoom, setIsInRoom] = useState(false);
   const [pendingInvites, setPendingInvites] = useState<any[]>([]);
   const gameModeOptions = [
     { value: "5vs5", label: "🗺️ 5vs5 - Summoner's Rift" },
@@ -153,20 +152,6 @@ export default function CustomDetailPage() {
     }
   };
 
-  const registerToRoom = async () => {
-    if (!id || !user) return;
-    try {
-      await http.post(`/registrations/${id}/register`);
-      toast.success("Đăng ký thành công!");
-      // Reload data
-      const res = await http.get(`/customs/${id}`);
-      setCustom(res.data);
-      setIsInRoom(true);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Lỗi đăng ký");
-    }
-  };
-
   const sendInvite = async () => {
     if (!selectedInvite || !id) return;
     try {
@@ -214,18 +199,8 @@ export default function CustomDetailPage() {
         });
         setRegistrations(res2.data);
 
-        // Check if current user is already in the room
+        // Check if current user has registered
         if (user && res1.data) {
-          const allPlayers = [
-            ...(res1.data.team1 || []),
-            ...(res1.data.team2 || []),
-            ...(res1.data.players || []),
-          ];
-          const isUserInRoom = allPlayers.some(
-            (p: any) => (p._id || p) === user.id
-          );
-          setIsInRoom(isUserInRoom);
-
           if (user) {
             setHasRegistered(
               res2.data.some((r: Registration) => r.user._id === user.id)
@@ -988,28 +963,6 @@ export default function CustomDetailPage() {
               )}
             </div>
 
-            {/* Register Button Section */}
-            {user && !isInRoom && (
-              <div className="bg-linear-to-r from-green-50 to-blue-50 rounded-xl shadow-lg p-6 border-2 border-green-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-800 mb-1">
-                      ✨ Tham gia phòng
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Đăng ký ngay để được xếp vào đội chơi
-                    </p>
-                  </div>
-                  <button
-                    onClick={registerToRoom}
-                    className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold shadow-md transition whitespace-nowrap"
-                  >
-                    📝 Đăng ký tham gia
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* Registered Members Section */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <div className="flex items-center justify-between mb-4">
@@ -1099,32 +1052,50 @@ export default function CustomDetailPage() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-3">
+                  <div className="max-h-96 overflow-y-auto space-y-3">
                     {[...teamA, ...teamB].map((member: any, index) => {
-                      const user = member.user || member;
+                      const memberUser = member.user || member;
                       const teamLabel =
                         index < teamA.length ? "🔴 Đội Đỏ" : "🔵 Đội Xanh";
+                      function removeMemberFromRoom(_id: any): void {
+                        throw new Error("Function not implemented.");
+                      }
+
                       return (
                         <div
-                          key={user._id}
+                          key={memberUser._id}
                           className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition"
                         >
                           <img
-                            src={user.avatarUrl || "https://placehold.co/40x40"}
-                            alt={user.username}
+                            src={
+                              memberUser.avatarUrl ||
+                              "https://placehold.co/40x40"
+                            }
+                            alt={memberUser.username}
                             className="w-10 h-10 rounded-full border-2 border-gray-300"
                           />
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <div className="font-semibold text-gray-900">
-                              {user.username}
+                              {memberUser.username}
                             </div>
                             <div className="text-xs text-gray-500">
-                              {user.ingameName}
+                              {memberUser.ingameName}
                             </div>
                           </div>
-                          <span className="px-3 py-1 bg-white rounded-full text-xs font-semibold border border-gray-300">
+                          <span className="px-3 py-1 bg-white rounded-full text-xs font-semibold border border-gray-300 whitespace-nowrap">
                             {teamLabel}
                           </span>
+                          {canManage && memberUser._id !== user?.id && (
+                            <button
+                              onClick={() =>
+                                removeMemberFromRoom(memberUser._id)
+                              }
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                              title="Xóa khỏi phòng"
+                            >
+                              ✖️
+                            </button>
+                          )}
                         </div>
                       );
                     })}
@@ -1139,14 +1110,19 @@ export default function CustomDetailPage() {
       {/* Invite Modal */}
       {showInviteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
-              ✉️ Mời thành viên
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Chọn thành viên để gửi lời mời tham gia phòng
-            </p>
-            <div className="space-y-2 mb-6">
+          <div
+            className="bg-white rounded-xl max-w-md w-full flex flex-col"
+            style={{ maxHeight: "85vh" }}
+          >
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-900">
+                ✉️ Mời thành viên
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Chọn thành viên để gửi lời mời tham gia phòng
+              </p>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-2">
               {allMembers
                 .filter((m) => {
                   // Filter out members already in room
@@ -1186,7 +1162,7 @@ export default function CustomDetailPage() {
                   </button>
                 ))}
             </div>
-            <div className="flex gap-2">
+            <div className="p-6 border-t border-gray-200 flex gap-2">
               <button
                 onClick={sendInvite}
                 disabled={!selectedInvite}
@@ -1199,7 +1175,7 @@ export default function CustomDetailPage() {
                   setShowInviteModal(false);
                   setSelectedInvite(null);
                 }}
-                className="flex-1 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-semibold transition"
+                className="flex-1 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition"
               >
                 Hủy
               </button>

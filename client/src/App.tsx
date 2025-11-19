@@ -12,6 +12,7 @@ import ProfilePage from "./pages/user/ProfilePage";
 
 import AdminPage from "./pages/admin/AdminPage";
 import RoomMembersPage from "./pages/admin/RoomMembersPage";
+import MessagesPage from "./pages/admin/MessagesPage";
 import MembersPage from "./pages/MembersPage";
 import CustomsPage from "./pages/CustomsPage";
 import CustomDetailPage from "./pages/CustomDetailPage";
@@ -72,6 +73,14 @@ export default function App() {
               element={
                 <ProtectedRoute roles={["leader", "organizer", "moderator"]}>
                   <RoomMembersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/messages"
+              element={
+                <ProtectedRoute roles={["leader", "organizer", "moderator"]}>
+                  <MessagesPage />
                 </ProtectedRoute>
               }
             />

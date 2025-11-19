@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { http } from "../utils/http";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "react-toastify";
@@ -26,6 +26,7 @@ interface Member {
 }
 
 export default function CustomsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [customs, setCustoms] = useState<CustomRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -44,8 +45,12 @@ export default function CustomsPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [changingStatusId, setChangingStatusId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState(
+    searchParams.get("search") || ""
+  );
+  const [currentPage, setCurrentPage] = useState(
+    parseInt(searchParams.get("page") || "1")
+  );
   const [totalPages, setTotalPages] = useState(1);
   const gameModeOptions = [
     { value: "5vs5", label: "🗺️ 5vs5 - Summoner's Rift" },
@@ -61,6 +66,11 @@ export default function CustomsPage() {
 
   const loadCustoms = () => {
     setLoading(true);
+    // Update URL params
+    const params: any = { page: currentPage.toString() };
+    if (searchQuery) params.search = searchQuery;
+    setSearchParams(params);
+
     http
       .get("/customs", {
         params: { page: currentPage, limit: 4, search: searchQuery },

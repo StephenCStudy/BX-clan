@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { http } from "../utils/http";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "react-toastify";
@@ -13,6 +13,7 @@ interface News {
 }
 
 export default function NewsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [news, setNews] = useState<News[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -22,8 +23,12 @@ export default function NewsPage() {
     type: "announcement",
   });
   const { user } = useAuth();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState(
+    searchParams.get("search") || ""
+  );
+  const [currentPage, setCurrentPage] = useState(
+    parseInt(searchParams.get("page") || "1")
+  );
   const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
@@ -32,6 +37,11 @@ export default function NewsPage() {
 
   const loadNews = () => {
     setLoading(true);
+    // Update URL params
+    const params: any = { page: currentPage.toString() };
+    if (searchQuery) params.search = searchQuery;
+    setSearchParams(params);
+
     http
       .get("/news", {
         params: { page: currentPage, limit: 4, search: searchQuery },

@@ -241,11 +241,17 @@ export default function ProfilePage() {
     lane: "",
   });
   const [admins, setAdmins] = useState<
-    Array<{ _id: string; username: string }>
+    Array<{ _id: string; username: string; role: string }>
   >([]);
   const [selectedAdmin, setSelectedAdmin] = useState<string>("");
   const [messages, setMessages] = useState<
-    Array<{ user?: any; message: string; createdAt?: string }>
+    Array<{
+      _id?: string;
+      from?: any;
+      to?: any;
+      message: string;
+      createdAt?: string;
+    }>
   >([]);
   const [text, setText] = useState("");
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -317,12 +323,15 @@ export default function ProfilePage() {
   }, [user]);
 
   useEffect(() => {
-    // Load admins (leaders/organizers)
+    // Load admins (leaders/organizers/moderators)
     http
       .get("/members")
       .then((res) => {
         const list = (res.data || []).filter(
-          (m: any) => m.role === "leader" || m.role === "organizer"
+          (m: any) =>
+            m.role === "leader" ||
+            m.role === "organizer" ||
+            m.role === "moderator"
         );
         setAdmins(list);
         if (list.length) setSelectedAdmin(list[0]._id);
@@ -339,16 +348,47 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => {
-    // Setup socket for admin chat
+    if (!user) return;
+
+    // Setup socket for private messaging
     const s = io(SOCKET_URL);
-    s.on("message:receive", (msg: any) => {
+
+    // Join user's personal room
+    s.emit("user:join", user.id);
+
+    // Listen for incoming private messages
+    s.on("private:receive", (msg: any) => {
+      // Only add to messages if it's from the currently selected admin
+      if (msg.from._id === selectedAdmin || msg.from._id === user.id) {
+        setMessages((prev) => [...prev, msg]);
+      }
+    });
+
+    // Listen for sent message confirmation
+    s.on("private:sent", (msg: any) => {
       setMessages((prev) => [...prev, msg]);
     });
+
     socketRef.current = s;
+
     return () => {
       s.disconnect();
     };
-  }, [SOCKET_URL]);
+  }, [SOCKET_URL, user, selectedAdmin]);
+
+  // Load conversation when admin selection changes
+  useEffect(() => {
+    if (!selectedAdmin || !user) return;
+
+    http
+      .get(`/private-messages/conversation/${selectedAdmin}`)
+      .then((res) => {
+        setMessages(res.data || []);
+      })
+      .catch(() => {
+        setMessages([]);
+      });
+  }, [selectedAdmin, user]);
 
   if (!user) return null;
 
@@ -601,19 +641,55 @@ export default function ProfilePage() {
                   Chưa có tin nhắn. Hãy bắt đầu cuộc trò chuyện!
                 </p>
               )}
-              {messages.map((m, idx) => (
-                <div
-                  key={idx}
-                  className="bg-white rounded-lg border-2 border-gray-200 p-2 md:p-3 shadow-sm"
-                >
-                  <div className="font-semibold text-red-600 text-xs md:text-sm mb-1">
-                    {m.user?.username || "Bạn"}
+              {messages.map((m, idx) => {
+                const isMyMessage = m.from?._id === user.id;
+                const senderName = isMyMessage
+                  ? "Bạn"
+                  : m.from?.username || "Admin";
+                return (
+                  <div
+                    key={m._id || idx}
+                    className={`flex ${
+                      isMyMessage ? "justify-end" : "justify-start"
+                    }`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-lg p-2 md:p-3 shadow-sm ${
+                        isMyMessage
+                          ? "bg-red-600 text-white"
+                          : "bg-white border-2 border-gray-200"
+                      }`}
+                    >
+                      <div
+                        className={`font-semibold text-xs md:text-sm mb-1 ${
+                          isMyMessage ? "text-red-100" : "text-red-600"
+                        }`}
+                      >
+                        {senderName}
+                      </div>
+                      <div
+                        className={`text-xs md:text-sm ${
+                          isMyMessage ? "text-white" : "text-gray-800"
+                        }`}
+                      >
+                        {m.message}
+                      </div>
+                      {m.createdAt && (
+                        <div
+                          className={`text-xs mt-1 ${
+                            isMyMessage ? "text-red-200" : "text-gray-500"
+                          }`}
+                        >
+                          {new Date(m.createdAt).toLocaleTimeString("vi-VN", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-gray-800 text-xs md:text-sm">
-                    {m.message}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <div className="flex gap-2">
               <input
@@ -622,11 +698,13 @@ export default function ProfilePage() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    if (!text.trim()) return;
+                    if (!text.trim() || !selectedAdmin) return;
                     if (!socketRef.current) return;
-                    socketRef.current.emit("message:send", {
-                      message: text,
+                    socketRef.current.emit("private:send", {
+                      from: user.id,
                       to: selectedAdmin,
+                      message: text,
+                      fromUser: user,
                     });
                     setText("");
                   }
@@ -636,11 +714,13 @@ export default function ProfilePage() {
               />
               <button
                 onClick={() => {
-                  if (!text.trim()) return;
+                  if (!text.trim() || !selectedAdmin) return;
                   if (!socketRef.current) return;
-                  socketRef.current.emit("message:send", {
-                    message: text,
+                  socketRef.current.emit("private:send", {
+                    from: user.id,
                     to: selectedAdmin,
+                    message: text,
+                    fromUser: user,
                   });
                   setText("");
                 }}

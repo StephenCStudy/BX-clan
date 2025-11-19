@@ -267,4 +267,47 @@ router.delete(
   }
 );
 
+// Remove member from custom room
+router.delete(
+  "/:id/members/:memberId",
+  requireAuth,
+  requireRoles("organizer", "leader", "moderator"),
+  async (req, res, next) => {
+    try {
+      const { id, memberId } = req.params;
+      const customRoom = await CustomRoom.findById(id);
+
+      if (!customRoom) {
+        return res.status(404).json({ message: "Custom room not found" });
+      }
+
+      // Remove from team1, team2, and players arrays
+      customRoom.team1 = (customRoom.team1 || []).filter(
+        (p: any) => p.toString() !== memberId
+      );
+      customRoom.team2 = (customRoom.team2 || []).filter(
+        (p: any) => p.toString() !== memberId
+      );
+      customRoom.players = (customRoom.players || []).filter(
+        (p: any) => p.toString() !== memberId
+      );
+
+      await customRoom.save();
+
+      // Send notification to removed member
+      await Notification.create({
+        user: memberId,
+        type: "general",
+        title: "Đã bị xóa khỏi phòng",
+        message: `Bạn đã bị xóa khỏi phòng "${customRoom.title}"`,
+        relatedCustomRoom: id,
+      });
+
+      res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 export default router;

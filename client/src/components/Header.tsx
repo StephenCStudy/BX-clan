@@ -8,7 +8,8 @@ export default function Header() {
 
   return (
     <header className="bg-red-600 text-white shadow-lg">
-      <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      {/* Expanded width container (from max-w-6xl to max-w-7xl) */}
+      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         <Link
           to="/"
           className="font-bold text-2xl tracking-wide hover:text-red-100 transition"
@@ -64,7 +65,7 @@ export default function Header() {
             }
             end
           >
-            Trang chủ
+            <i className="fa-solid fa-house"></i> Trang chủ
           </NavLink>
           <NavLink
             to="/members"
@@ -74,7 +75,7 @@ export default function Header() {
               }`
             }
           >
-            Thành viên
+            <i className="fa-solid fa-users"></i> Thành viên
           </NavLink>
           <NavLink
             to="/customs"
@@ -84,7 +85,7 @@ export default function Header() {
               }`
             }
           >
-            Custom Game
+            <i className="fa-solid fa-gamepad"></i> Custom Game
           </NavLink>
           <NavLink
             to="/news"
@@ -94,7 +95,7 @@ export default function Header() {
               }`
             }
           >
-            Tin tức
+            <i className="fa-solid fa-gamepad"></i> Tin tức
           </NavLink>
           {user ? (
             <>
@@ -106,8 +107,22 @@ export default function Header() {
                   }`
                 }
               >
-                Cá nhân 
+                <i className="fa-solid fa-user"></i> Cá nhân
               </NavLink>
+              {(user.role === "leader" ||
+                user.role === "organizer" ||
+                user.role === "moderator") && (
+                <NavLink
+                  to="/messages"
+                  className={({ isActive }) =>
+                    `hover:opacity-90 transition px-2 py-1 rounded-md whitespace-nowrap ${
+                      isActive ? "bg-red-700/80 shadow-inner" : ""
+                    }`
+                  }
+                >
+                  <i className="fa-solid fa-comment"></i> Tin nhắn
+                </NavLink>
+              )}
               {(user.role === "leader" || user.role === "organizer") && (
                 <Link
                   to="/admin"
@@ -120,7 +135,7 @@ export default function Header() {
                 onClick={logout}
                 className="px-4 py-2 bg-white text-red-600 hover:bg-gray-100 rounded-lg font-medium transition shadow-md"
               >
-                Đăng xuất
+                <i className="fa-solid fa-right-from-bracket"></i> Đăng xuất
               </button>
             </>
           ) : (
@@ -182,6 +197,17 @@ export default function Header() {
               >
                 Cá nhân
               </Link>
+              {(user.role === "leader" ||
+                user.role === "organizer" ||
+                user.role === "moderator") && (
+                <Link
+                  to="/messages"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block py-2 hover:bg-red-800 rounded px-3 transition"
+                >
+                  Tin nhắn
+                </Link>
+              )}
               {(user.role === "leader" || user.role === "organizer") && (
                 <Link
                   to="/admin"

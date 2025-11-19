@@ -710,7 +710,6 @@ export default function AdminPage() {
                   });
 
                   // Pagination
-                  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
                   const startIndex = (currentPage - 1) * PAGE_SIZE;
                   const paginatedMembers = filtered.slice(
                     startIndex,
@@ -872,7 +871,6 @@ export default function AdminPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {(() => {
-                  const totalPages = Math.ceil(customs.length / PAGE_SIZE);
                   const startIndex = (currentPage - 1) * PAGE_SIZE;
                   const paginatedCustoms = customs.slice(
                     startIndex,
@@ -1015,7 +1013,6 @@ export default function AdminPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {(() => {
-                  const totalPages = Math.ceil(news.length / PAGE_SIZE);
                   const startIndex = (currentPage - 1) * PAGE_SIZE;
                   const paginatedNews = news.slice(
                     startIndex,
@@ -1145,7 +1142,6 @@ export default function AdminPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {(() => {
-                  const totalPages = Math.ceil(reports.length / PAGE_SIZE);
                   const startIndex = (currentPage - 1) * PAGE_SIZE;
                   const paginatedReports = reports.slice(
                     startIndex,
@@ -1671,7 +1667,7 @@ export default function AdminPage() {
 
       {/* Add Member to Registration Modal */}
       {showAddMemberModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60 p-4">
           <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
             <h3 className="text-xl font-bold text-green-600 mb-4">
               ➕ Thêm thành viên vào danh sách

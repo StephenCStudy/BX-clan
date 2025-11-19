@@ -82,7 +82,7 @@ export default function Footer() {
               <p className="text-xs text-gray-500">Full-stack Developer</p>
               <div className="flex gap-3 mt-4">
                 <a
-                  href="https://github.com/StephenCStudy/bxclan"
+                  href="https://github.com/StephenCStudy/BX-clan"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 transition text-xs font-semibold"

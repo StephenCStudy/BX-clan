@@ -21,11 +21,10 @@ import NewsDetailPage from "./pages/NewsDetailPage";
 import RegistrationPage from "./pages/RegistrationPage";
 import { useEffect, useState } from "react";
 import LoadingSpinner from "./components/LoadingSpinner";
+import { callBackend } from "./utils/callBackend";
 
 // vercel / render reload backend ping helper
-import { callBackend } from "./utils/callBackend";
 export default function App() {
-  const [backendData, setBackendData] = useState(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     const pingUrl =
@@ -39,9 +38,7 @@ export default function App() {
       setLoading(true);
       try {
         // use callBackend's retry logic; increase retries here if you want longer waiting
-        const data: any = await callBackend(pingUrl, 12, 2000);
-        if (!mounted) return;
-        setBackendData(data);
+        await callBackend(pingUrl, 12, 2000);
       } catch (err: any) {
         // final failure after retries – keep error logged; we still stop loading
         console.error("Backend ping failed:", err?.message || err);
@@ -65,7 +62,7 @@ export default function App() {
             <div className="text-center">
               <LoadingSpinner />
               <div className="mt-3 text-gray-700">
-                Waking backend, please wait…
+                Đang tải dữ liệu, vui lòng chờ...
               </div>
             </div>
           </div>

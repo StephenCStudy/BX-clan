@@ -34,7 +34,7 @@ router.post("/register", async (req, res, next) => {
     const token = jwt.sign(
       { id: String(user._id), role: user.role },
       process.env.JWT_SECRET as string,
-      { expiresIn: process.env.JWT_EXPIRE || "7d" }
+      { expiresIn: process.env.JWT_EXPIRE || "7d" } as any
     );
     res.json({
       token,
@@ -63,7 +63,7 @@ router.post("/login", async (req, res, next) => {
     const token = jwt.sign(
       { id: String(user._id), role: user.role },
       process.env.JWT_SECRET as string,
-      { expiresIn: process.env.JWT_EXPIRE || "7d" }
+      { expiresIn: process.env.JWT_EXPIRE || "7d" } as any
     );
     res.json({
       token,

@@ -123,17 +123,44 @@ router.post(
       // Get all pending registrations that haven't been assigned to a custom room yet
       const registrations = await Registration.find({
         news: newsId,
-        $or: [
-          { status: "pending", custom: null },
-          { status: "pending", custom: { $exists: false } },
-        ],
+        status: "pending",
+        $or: [{ custom: null }, { custom: { $exists: false } }],
       }).populate("user");
 
       console.log(
         `Found ${registrations.length} pending registrations for news ${newsId}`
       );
 
-      if (registrations.length === 0) {
+      // Debug: Check all registrations for this news
+      const allRegs = await Registration.find({ news: newsId });
+      const statusBreakdown = {
+        pending: allRegs.filter((r) => r.status === "pending").length,
+        assigned: allRegs.filter((r) => r.status === "assigned").length,
+        approved: allRegs.filter((r) => r.status === "approved").length,
+        rejected: allRegs.filter((r) => r.status === "rejected").length,
+        pendingWithCustom: allRegs.filter(
+          (r) => r.status === "pending" && r.custom
+        ).length,
+        pendingWithoutCustom: allRegs.filter(
+          (r) => r.status === "pending" && !r.custom
+        ).length,
+      };
+      console.log("Registration status breakdown:", statusBreakdown);
+
+      // Filter out registrations with null/undefined user (in case populate failed)
+      const validRegistrations = registrations.filter(
+        (r) => r.user && r.user._id
+      );
+
+      if (validRegistrations.length < registrations.length) {
+        console.warn(
+          `Filtered out ${
+            registrations.length - validRegistrations.length
+          } registrations with invalid user`
+        );
+      }
+
+      if (validRegistrations.length === 0) {
         // Check if there are any registrations at all
         const totalRegs = await Registration.countDocuments({ news: newsId });
         const assignedRegs = await Registration.countDocuments({
@@ -157,88 +184,111 @@ router.post(
         title: { $regex: `^${escapedTitle}`, $options: "i" },
       });
 
-      const customRooms = [];
-      let currentRoom: any = null;
+      // New batching logic: only create & assign when we have FULL groups of 10
+      const customRooms: any[] = [];
+      const batch: any[] = [];
       let roomCounter = existingCustoms + 1;
-      let team1Count = 0;
-      let team2Count = 0;
-      let playerCount = 0;
+      let createdCount = 0;
 
-      for (let i = 0; i < registrations.length; i++) {
-        const reg = registrations[i];
+      for (let i = 0; i < validRegistrations.length; i++) {
+        const reg = validRegistrations[i];
+        if (!reg.user || !reg.user._id) {
+          console.warn(`Skipping registration ${reg._id} - no valid user`);
+          continue;
+        }
+        batch.push(reg);
 
-        // Create new custom room if needed (when no room exists or current room is full)
-        if (!currentRoom || playerCount >= 10) {
-          // Save the previous room if it exists
-          if (currentRoom) {
-            await currentRoom.save();
-          }
-
+        // When batch reaches 10, create a room and assign
+        if (batch.length === 10) {
           const roomTitle = `${news.title} #${roomCounter}`;
-          currentRoom = await CustomRoom.create({
+          const newRoom = await CustomRoom.create({
             title: roomTitle,
             description: news.content || "",
             scheduleTime: new Date(),
             maxPlayers: 10,
-            status: "open",
+            status: "open", // open when created, will be closed when full
             gameMode: gameMode || "5vs5",
             bestOf: bestOf || 3,
-            players: [],
-            team1: [],
-            team2: [],
+            players: batch.map((r) => r.user._id),
+            team1: batch.slice(0, 5).map((r) => r.user._id),
+            team2: batch.slice(5, 10).map((r) => r.user._id),
             createdBy: req.user.id,
           });
 
-          customRooms.push(currentRoom);
+          customRooms.push(newRoom);
           roomCounter++;
-          playerCount = 0;
-          team1Count = 0;
-          team2Count = 0;
+          createdCount++;
+
+          // Assign registrations in this batch
+          for (const bReg of batch) {
+            bReg.status = "assigned";
+            bReg.custom = newRoom._id;
+            await bReg.save();
+            try {
+              await Notification.create({
+                user: bReg.user._id,
+                type: "room-assignment",
+                title: "Bạn đã được xếp phòng",
+                message: `Bạn đã được xếp vào ${newRoom.title}. Vui lòng kiểm tra chi tiết.`,
+                relatedNews: newsId,
+              });
+            } catch (notifErr) {
+              console.error(
+                `Failed to create notification for user ${bReg.user._id}:`,
+                notifErr
+              );
+            }
+          }
+
+          // Reset batch for next room
+          batch.length = 0;
         }
-
-        // Add player to current room
-        currentRoom.players.push(reg.user._id);
-
-        // Assign to teams alternately (5 per team)
-        if (team1Count < 5) {
-          currentRoom.team1.push(reg.user._id);
-          team1Count++;
-        } else {
-          currentRoom.team2.push(reg.user._id);
-          team2Count++;
-        }
-
-        playerCount++;
-
-        // Update registration status and link to custom room
-        reg.status = "assigned";
-        reg.custom = currentRoom._id;
-        await reg.save();
-
-        // Send notification to user
-        await Notification.create({
-          user: reg.user._id,
-          type: "room-assignment",
-          title: "Bạn đã được xếp phòng",
-          message: `Bạn đã được xếp vào ${currentRoom.title}. Vui lòng kiểm tra chi tiết.`,
-          relatedNews: newsId,
-        });
       }
 
-      // Save the last room and update its status
-      if (currentRoom) {
-        if (playerCount >= 10) {
-          currentRoom.status = "full";
-        }
-        await currentRoom.save();
-      }
+      const leftover = batch.length; // players not enough to form a full room
 
       res.json({
-        message: "Custom rooms created successfully",
+        message:
+          createdCount > 0
+            ? `Đã tạo ${createdCount} phòng. Còn lại ${leftover} đăng ký chưa đủ để tạo phòng.`
+            : `Không thể tạo phòng vì chỉ có ${leftover} đăng ký (cần đủ 10).`,
         rooms: customRooms,
+        createdRooms: createdCount,
+        leftoverPending: leftover,
+        totalPendingProcessed: validRegistrations.length,
       });
     } catch (err) {
       console.error("Auto-create rooms error:", err);
+      next(err);
+    }
+  }
+);
+
+// Reset registrations to pending (admin only) - useful when auto-create failed mid-way
+router.post(
+  "/news/:newsId/reset-assignments",
+  requireAuth,
+  requireRoles("organizer", "leader", "moderator"),
+  async (req: any, res, next) => {
+    try {
+      const { newsId } = req.params;
+
+      // Update all assigned registrations back to pending and clear custom field
+      const result = await Registration.updateMany(
+        { news: newsId, status: "assigned" },
+        { $set: { status: "pending", custom: null } }
+      );
+
+      console.log(
+        `Reset ${result.modifiedCount} registrations for news ${newsId}`
+      );
+
+      res.json({
+        message: `Đã reset ${result.modifiedCount} đăng ký về trạng thái pending`,
+        resetCount: result.modifiedCount,
+      });
+    } catch (err) {
+      console.error("Reset assignments error:", err);
       next(err);
     }
   }

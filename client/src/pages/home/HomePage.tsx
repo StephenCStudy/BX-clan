@@ -89,7 +89,7 @@ export default function HomePage() {
         <div className="relative max-w-6xl mx-auto px-4 py-16 md:py-24">
           {/* Clan Name & Description */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl md:text-6xl font-extrabold mb-4 drop-shadow-lg">
+            <h1 className="text-4xl md:text-6xl font-extrabold mb-4 drop-shadow-lg text-white!">
               {clan?.clanName || "BX Clan"}
             </h1>
             <p className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto">
@@ -118,21 +118,21 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
             <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 text-center">
               <div className="text-3xl mb-2">⚡</div>
-              <h3 className="font-bold text-lg mb-1">Tốc Độ</h3>
+              <h3 className="font-bold text-lg mb-1 text-white!">Tốc Độ</h3>
               <p className="text-sm text-white/80">
                 Phản ứng nhanh, hành động quyết đoán
               </p>
             </div>
             <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 text-center">
               <div className="text-3xl mb-2">🏆</div>
-              <h3 className="font-bold text-lg mb-1">Chiến Thắng</h3>
+              <h3 className="font-bold text-lg mb-1 text-white!">Chiến Thắng</h3>
               <p className="text-sm text-white/80">
                 Luôn hướng đến mục tiêu cao nhất
               </p>
             </div>
             <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 text-center">
               <div className="text-3xl mb-2">🤝</div>
-              <h3 className="font-bold text-lg mb-1">Đoàn Kết</h3>
+              <h3 className="font-bold text-lg mb-1 text-white!">Đoàn Kết</h3>
               <p className="text-sm text-white/80">
                 Cùng nhau phát triển và thành công
               </p>

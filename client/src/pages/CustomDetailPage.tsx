@@ -972,7 +972,13 @@ export default function CustomDetailPage() {
                 {user && (
                   <button
                     onClick={() => setShowInviteModal(true)}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm shadow-md transition"
+                    disabled={teamA.length + teamB.length >= 10}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-semibold text-sm shadow-md transition"
+                    title={
+                      teamA.length + teamB.length >= 10
+                        ? "Phòng đã đủ 10 người"
+                        : "Mời thành viên"
+                    }
                   >
                     ✉️ Mời thành viên
                   </button>
@@ -1034,12 +1040,64 @@ export default function CustomDetailPage() {
                   </p>
                 </div>
               ) : teamA.length + teamB.length >= 10 ? (
-                <div className="text-center py-8 bg-yellow-50 rounded-lg border-2 border-yellow-300">
-                  <div className="text-4xl mb-2">✅</div>
-                  <p className="text-yellow-700 font-bold text-lg">
-                    Đã đủ 10 người!
-                  </p>
-                  <p className="text-yellow-600 text-sm mt-1">Phòng đã đầy</p>
+                <div className="space-y-4">
+                  <div className="text-center py-6 bg-yellow-50 rounded-lg border-2 border-yellow-300">
+                    <div className="text-4xl mb-2">✅</div>
+                    <p className="text-yellow-700 font-bold text-lg">
+                      Đã đủ 10 người!
+                    </p>
+                    <p className="text-yellow-600 text-sm mt-1">Phòng đã đầy</p>
+                  </div>
+
+                  {/* Show member list even when full */}
+                  <div className="max-h-96 overflow-y-auto space-y-3">
+                    {[...teamA, ...teamB].map((member: any, index) => {
+                      const memberUser = member.user || member;
+                      const teamLabel =
+                        index < teamA.length ? "🔴 Đội Đỏ" : "🔵 Đội Xanh";
+                      function removeMemberFromRoom(_id: any): void {
+                        throw new Error("Function not implemented.");
+                      }
+
+                      return (
+                        <div
+                          key={memberUser._id}
+                          className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition"
+                        >
+                          <img
+                            src={
+                              memberUser.avatarUrl ||
+                              "https://placehold.co/40x40"
+                            }
+                            alt={memberUser.username}
+                            className="w-10 h-10 rounded-full border-2 border-gray-300"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-gray-900">
+                              {memberUser.username}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {memberUser.ingameName}
+                            </div>
+                          </div>
+                          <span className="px-3 py-1 bg-white rounded-full text-xs font-semibold border border-gray-300 whitespace-nowrap">
+                            {teamLabel}
+                          </span>
+                          {canManage && memberUser._id !== user?.id && (
+                            <button
+                              onClick={() =>
+                                removeMemberFromRoom(memberUser._id)
+                              }
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                              title="Xóa khỏi phòng"
+                            >
+                              ✖️
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-4">

@@ -5,7 +5,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           {/* About Section */}
           <div>
-            <h3 className="text-xl font-bold text-red-500 mb-4">BX Clan</h3>
+            <h3 className="text-xl font-bold text-white! mb-4">BX Clan</h3>
             <p className="text-sm text-gray-400 mb-4">
               Clan Wild Rift hàng đầu Việt Nam. Chuyên nghiệp, đoàn kết, và luôn
               hướng đến chiến thắng.
@@ -17,7 +17,7 @@ export default function Footer() {
 
           {/* Contact Section */}
           <div>
-            <h3 className="text-lg font-bold text-red-500 mb-4">
+            <h3 className="text-lg font-bold text-white! mb-4">
               Liên hệ & Hỗ trợ
             </h3>
             <ul className="space-y-2 text-sm">
@@ -26,7 +26,9 @@ export default function Footer() {
                   href="mailto:support@bxclan.com"
                   className="flex items-center gap-2 hover:text-red-400 transition"
                 >
-                  <span><i className="fa-solid fa-envelope"></i></span>
+                  <span>
+                    <i className="fa-solid fa-envelope"></i>
+                  </span>
                   <span>support@bxclan.com</span>
                 </a>
               </li>
@@ -37,7 +39,9 @@ export default function Footer() {
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 hover:text-red-400 transition"
                 >
-                  <span><i className="fa-brands fa-facebook"></i></span>
+                  <span>
+                    <i className="fa-brands fa-facebook"></i>
+                  </span>
                   <span>Facebook</span>
                 </a>
               </li>
@@ -48,7 +52,9 @@ export default function Footer() {
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 hover:text-red-400 transition"
                 >
-                  <span><i className="fa-brands fa-discord"></i></span>
+                  <span>
+                    <i className="fa-brands fa-discord"></i>
+                  </span>
                   <span>Discord</span>
                 </a>
               </li>
@@ -59,7 +65,9 @@ export default function Footer() {
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 hover:text-red-400 transition"
                 >
-                  <span><i className="fa-brands fa-tiktok"></i></span>
+                  <span>
+                    <i className="fa-brands fa-tiktok"></i>
+                  </span>
                   <span>TikTok</span>
                 </a>
               </li>
@@ -68,15 +76,17 @@ export default function Footer() {
 
           {/* Developer Section */}
           <div>
-            <h3 className="text-lg font-bold text-red-500 mb-4">
+            <h3 className="text-lg font-bold text-white! mb-4">
               Thông tin nhà phát triển
             </h3>
             <div className="space-y-2 text-sm">
               <p className="flex items-center gap-2">
-                <span><i className="fa-solid fa-user"></i></span>
+                <span>
+                  <i className="fa-solid fa-user"></i>
+                </span>
                 <span>
                   Developed by{" "}
-                  <span className="text-red-400 font-bold">StephenDuc</span>
+                  <span className="text-white! font-bold">StephenDuc</span>
                 </span>
               </p>
               <p className="text-xs text-gray-500">Full-stack Developer</p>

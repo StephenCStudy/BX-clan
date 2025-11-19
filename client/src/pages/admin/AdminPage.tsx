@@ -94,20 +94,46 @@ export default function AdminPage() {
 
         // Load rooms for room-creation news
         Promise.all(
-          roomCreationNews.map((newsItem: any) =>
-            http
-              .get(`/registrations/news/${newsItem._id}/rooms`)
-              .then((res) => ({
+          roomCreationNews.map(async (newsItem: any) => {
+            try {
+              // First check if there are assigned registrations without rooms
+              const regsResponse = await http.get(
+                `/registrations/news/${newsItem._id}`
+              );
+              const registrations = regsResponse.data;
+              const assignedCount = registrations.filter(
+                (r: any) => r.status === "assigned"
+              ).length;
+
+              // Get rooms for this news
+              const roomsResponse = await http.get(
+                `/registrations/news/${newsItem._id}/rooms`
+              );
+              const rooms = roomsResponse.data;
+
+              // Auto-reset if there are assigned registrations but no rooms
+              if (assignedCount > 0 && rooms.length === 0) {
+                console.log(
+                  `Auto-resetting ${assignedCount} assignments for news ${newsItem._id}`
+                );
+                await http.post(
+                  `/registrations/news/${newsItem._id}/reset-assignments`
+                );
+              }
+
+              return {
                 newsId: newsItem._id,
                 newsTitle: newsItem.title,
-                rooms: res.data,
-              }))
-              .catch(() => ({
+                rooms: rooms,
+              };
+            } catch (err) {
+              return {
                 newsId: newsItem._id,
                 newsTitle: newsItem.title,
                 rooms: [],
-              }))
-          )
+              };
+            }
+          })
         ).then((roomsData) => {
           setRoomsByNews(roomsData);
         });
@@ -191,7 +217,11 @@ export default function AdminPage() {
 
       setShowAutoCreateModal(false);
       setSelectedNewsId(null);
-      window.location.reload();
+
+      // Reload page after 2 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (err: any) {
       console.error("Auto-create error:", err);
       toast.error(err.response?.data?.message || "Lỗi tạo phòng");
@@ -314,7 +344,7 @@ export default function AdminPage() {
           className="rounded-lg p-2.5 md:p-5 text-center text-white shadow-lg bg-linear-to-br from-emerald-400 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 transition-all transform hover:scale-105 cursor-pointer"
         >
           <p className="text-xl md:text-4xl font-extrabold drop-shadow-sm">
-            {stats.members}
+            {stats.members ?? 0}
           </p>
           <p className="mt-1 md:mt-2 opacity-90 font-medium text-xs md:text-base">
             Thành viên
@@ -325,7 +355,7 @@ export default function AdminPage() {
           className="rounded-lg p-2.5 md:p-5 text-center text-white shadow-lg bg-linear-to-br from-sky-400 to-blue-600 hover:from-sky-500 hover:to-blue-700 transition-all transform hover:scale-105 cursor-pointer"
         >
           <p className="text-xl md:text-4xl font-extrabold drop-shadow-sm">
-            {stats.customs}
+            {stats.customs ?? 0}
           </p>
           <p className="mt-1 md:mt-2 opacity-90 font-medium text-xs md:text-base">
             Custom Games
@@ -336,7 +366,7 @@ export default function AdminPage() {
           className="rounded-lg p-2.5 md:p-5 text-center text-white shadow-lg bg-linear-to-br from-fuchsia-400 to-purple-600 hover:from-fuchsia-500 hover:to-purple-700 transition-all transform hover:scale-105 cursor-pointer"
         >
           <p className="text-xl md:text-4xl font-extrabold drop-shadow-sm">
-            {stats.news}
+            {stats.news ?? 0}
           </p>
           <p className="mt-1 md:mt-2 opacity-90 font-medium text-xs md:text-base">
             Tin tức
@@ -347,7 +377,7 @@ export default function AdminPage() {
           className="rounded-lg p-2.5 md:p-5 text-center text-white shadow-lg bg-linear-to-br from-amber-400 to-orange-600 hover:from-amber-500 hover:to-orange-700 transition-all transform hover:scale-105 cursor-pointer"
         >
           <p className="text-xl md:text-4xl font-extrabold drop-shadow-sm">
-            {stats.reports}
+            {stats.reports ?? 0}
           </p>
           <p className="mt-1 md:mt-2 opacity-90 font-medium text-xs md:text-base">
             Báo cáo
@@ -358,7 +388,7 @@ export default function AdminPage() {
           className="rounded-lg p-2.5 md:p-5 text-center text-white shadow-lg bg-linear-to-br from-cyan-400 to-teal-600 hover:from-cyan-500 hover:to-teal-700 transition-all transform hover:scale-105 cursor-pointer"
         >
           <p className="text-xl md:text-4xl font-extrabold drop-shadow-sm">
-            {stats.rooms}
+            {stats.rooms ?? 0}
           </p>
           <p className="mt-1 md:mt-2 opacity-90 font-medium text-xs md:text-base">
             Đăng ký phòng
@@ -380,7 +410,8 @@ export default function AdminPage() {
                 <span className="text-3xl">📊</span>
               </div>
               <p className="text-3xl font-extrabold text-emerald-600 mb-2">
-                {stats.customs + stats.news}
+                {parseInt(stats.customs?.toString() || "0", 10) +
+                  parseInt(stats.news?.toString() || "0", 10)}
               </p>
               <p className="text-sm text-emerald-700">
                 {stats.customs} custom + {stats.news} tin tức

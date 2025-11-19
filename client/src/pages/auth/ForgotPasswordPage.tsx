@@ -57,7 +57,7 @@ export default function ForgotPasswordPage() {
                 className="w-full p-3 bg-gray-50 rounded-lg border-2 border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200"
                 value={ingameName}
                 onChange={(e) => setIngameName(e.target.value)}
-                placeholder="VD: BX-member, bx-member, BX-MEMBER"
+                placeholder="VD: bx-member#0000"
                 required
               />
             </div>

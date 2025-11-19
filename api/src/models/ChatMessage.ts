@@ -1,4 +1,4 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
 
 const ChatMessageSchema = new Schema(
   {
@@ -6,7 +6,6 @@ const ChatMessageSchema = new Schema(
     customRoom: {
       type: Schema.Types.ObjectId,
       ref: "CustomRoom",
-      required: true,
       index: true,
     },
     message: { type: String, required: true },
@@ -16,5 +15,10 @@ const ChatMessageSchema = new Schema(
 
 ChatMessageSchema.index({ customRoom: 1, createdAt: -1 });
 
-export default mongoose.models.ChatMessage ||
-  mongoose.model("ChatMessage", ChatMessageSchema);
+type ChatMessageDoc = InferSchemaType<typeof ChatMessageSchema>;
+
+const ChatMessageModel =
+  (mongoose.models.ChatMessage as Model<ChatMessageDoc>) ||
+  mongoose.model<ChatMessageDoc>("ChatMessage", ChatMessageSchema);
+
+export default ChatMessageModel;

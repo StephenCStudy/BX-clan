@@ -48,6 +48,9 @@ export default function CustomsPage() {
   const [searchQuery, setSearchQuery] = useState(
     searchParams.get("search") || ""
   );
+  const [statusFilter, setStatusFilter] = useState(
+    searchParams.get("status") || "all"
+  );
   const [currentPage, setCurrentPage] = useState(
     parseInt(searchParams.get("page") || "1")
   );
@@ -62,18 +65,22 @@ export default function CustomsPage() {
   useEffect(() => {
     loadCustoms();
     loadMembers();
-  }, [currentPage, searchQuery]);
+  }, [currentPage, searchQuery, statusFilter]);
 
   const loadCustoms = () => {
     setLoading(true);
     // Update URL params
     const params: any = { page: currentPage.toString() };
     if (searchQuery) params.search = searchQuery;
+    if (statusFilter !== "all") params.status = statusFilter;
     setSearchParams(params);
+
+    const apiParams: any = { page: currentPage, limit: 4, search: searchQuery };
+    if (statusFilter !== "all") apiParams.status = statusFilter;
 
     http
       .get("/customs", {
-        params: { page: currentPage, limit: 4, search: searchQuery },
+        params: apiParams,
       })
       .then((res) => {
         setCustoms(res.data.items || []);
@@ -197,8 +204,8 @@ export default function CustomsPage() {
         )}
       </div>
 
-      {/* Search Bar */}
-      <div className="mb-4">
+      {/* Search and Filter Bar */}
+      <div className="mb-4 flex flex-col md:flex-row gap-3">
         <input
           type="text"
           placeholder="🔍 Tìm kiếm theo tên phòng..."
@@ -207,8 +214,22 @@ export default function CustomsPage() {
             setSearchQuery(e.target.value);
             setCurrentPage(1);
           }}
-          className="w-full p-3 text-sm bg-white rounded-lg border-2 border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200"
+          className="flex-1 p-3 text-sm bg-white rounded-lg border-2 border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200"
         />
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="md:w-48 p-3 text-sm bg-white rounded-lg border-2 border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200"
+        >
+          <option value="all">📋 Tất cả trạng thái</option>
+          <option value="open">🟢 Đang mở</option>
+          <option value="playing">🎮 Đang chơi</option>
+          <option value="full">🔴 Đã đầy</option>
+          <option value="closed">🔒 Đã đóng</option>
+        </select>
       </div>
 
       {showForm && (

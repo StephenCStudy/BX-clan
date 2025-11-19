@@ -174,16 +174,27 @@ export default function AdminPage() {
   const handleAutoCreate = async () => {
     if (!selectedNewsId) return;
     try {
-      await http.post(
+      console.log("Creating rooms for news:", selectedNewsId, autoCreateForm);
+      const response = await http.post(
         `/registrations/news/${selectedNewsId}/auto-create-rooms`,
         autoCreateForm
       );
-      toast.success("Đã tạo phòng tự động");
+      console.log("Auto-create response:", response.data);
+
+      if (response.data.rooms && response.data.rooms.length > 0) {
+        toast.success(`Đã tạo ${response.data.rooms.length} phòng thành công`);
+      } else {
+        toast.info(
+          response.data.message || "Không có đăng ký nào để xếp phòng"
+        );
+      }
+
       setShowAutoCreateModal(false);
       setSelectedNewsId(null);
       window.location.reload();
-    } catch {
-      toast.error("Lỗi tạo phòng");
+    } catch (err: any) {
+      console.error("Auto-create error:", err);
+      toast.error(err.response?.data?.message || "Lỗi tạo phòng");
     }
   };
 
@@ -1263,13 +1274,13 @@ export default function AdminPage() {
       )}
 
       {activeTab === "rooms" && (
-        <div className="bg-white rounded-xl border-2 border-gray-200 p-4 sm:p-5 md:p-6 shadow-md">
-          <h2 className="text-xl sm:text-2xl font-bold mb-3 md:mb-4 text-teal-600">
+        <div className="bg-white rounded-xl border-2 border-gray-200 p-3 sm:p-4 md:p-6 shadow-md">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-3 md:mb-4 text-teal-600">
             Quản lý Đăng ký theo Phòng
           </h2>
 
           {roomsByNews.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 text-sm">
               Chưa có bài đăng "Tạo phòng" nào
             </div>
           )}
@@ -1277,25 +1288,26 @@ export default function AdminPage() {
           {roomsByNews.map((newsData: any) => (
             <div
               key={newsData.newsId}
-              className="mb-6 border-2 border-teal-200 rounded-xl p-4 bg-teal-50"
+              className="mb-4 sm:mb-6 border-2 border-teal-200 rounded-xl p-3 sm:p-4 bg-teal-50"
             >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-teal-800">
+              {/* Header with buttons */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3 sm:mb-4">
+                <h3 className="text-base sm:text-lg font-bold text-teal-800 line-clamp-2">
                   {newsData.newsTitle}
                 </h3>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <button
                     onClick={() => loadRegistrationList(newsData.newsId)}
-                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold"
+                    className="flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold whitespace-nowrap"
                   >
-                    📋 Xem danh sách
+                    📋 Xem DS
                   </button>
                   <button
                     onClick={() => {
                       setSelectedNewsId(newsData.newsId);
                       setShowAutoCreateModal(true);
                     }}
-                    className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold"
+                    className="flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm font-semibold whitespace-nowrap"
                   >
                     ⚙️ Tạo tự động
                   </button>
@@ -1303,71 +1315,81 @@ export default function AdminPage() {
               </div>
 
               {newsData.rooms.length === 0 ? (
-                <p className="text-gray-600 text-sm">Chưa có phòng nào</p>
+                <p className="text-gray-600 text-xs sm:text-sm">
+                  Chưa có phòng nào
+                </p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {newsData.rooms.map((room: any) => (
                     <div
                       key={room._id}
-                      className="bg-white rounded-lg border-2 border-gray-200 p-3"
+                      className="bg-white rounded-lg border-2 border-gray-200 p-2 sm:p-3"
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-semibold text-gray-900">
-                            {room.title || `Phòng ${room.roomNumber}`}
-                          </h4>
-                          <Link
-                            to={`/customs/${room._id}`}
-                            className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium flex items-center gap-1"
-                            title="Xem chi tiết phòng"
+                      {/* Room header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                        <h4 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-1">
+                          {room.title || `Phòng ${room.roomNumber}`}
+                        </h4>
+                        <div className="flex items-center justify-between sm:justify-end gap-2">
+                          <div className="flex items-center gap-2">
+                            <Link
+                              to={`/customs/${room._id}`}
+                              className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium flex items-center gap-1"
+                              title="Xem chi tiết phòng"
+                            >
+                              👁️ <span className="hidden sm:inline">Xem</span>
+                            </Link>
+                            <button
+                              onClick={() =>
+                                deleteCustomRoom(newsData.newsId, room._id)
+                              }
+                              className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium"
+                              title="Xóa phòng"
+                            >
+                              🗑️ <span className="hidden sm:inline">Xóa</span>
+                            </button>
+                          </div>
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap ${
+                              room.status === "full" ||
+                              room.players?.length >= 10
+                                ? "bg-red-100 text-red-600"
+                                : "bg-green-100 text-green-600"
+                            }`}
                           >
-                            👁️ Xem
-                          </Link>
-                          <button
-                            onClick={() =>
-                              deleteCustomRoom(newsData.newsId, room._id)
-                            }
-                            className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium"
-                            title="Xóa phòng"
-                          >
-                            🗑️ Xóa
-                          </button>
+                            {room.players?.length || 0}/10
+                          </span>
                         </div>
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-bold ${
-                            room.status === "full" || room.players?.length >= 10
-                              ? "bg-red-100 text-red-600"
-                              : "bg-green-100 text-green-600"
-                          }`}
-                        >
-                          {room.players?.length || 0}/10
-                        </span>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+
+                      {/* Teams */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {/* Team 1 */}
                         {room.team1 && room.team1.length > 0 && (
                           <div className="bg-blue-50 border border-blue-200 rounded p-2">
                             <div className="font-semibold text-blue-700 text-xs mb-1">
                               Đội 1 ({room.team1.length})
                             </div>
-                            {room.team1.map((player: any) => (
-                              <div
-                                key={player._id}
-                                className="flex items-center gap-2 py-1"
-                              >
-                                <img
-                                  src={
-                                    player.avatarUrl ||
-                                    "https://placehold.co/24x24"
-                                  }
-                                  alt=""
-                                  className="w-6 h-6 rounded-full"
-                                />
-                                <span className="text-xs text-gray-700">
-                                  {player.ingameName || player.username}
-                                </span>
-                              </div>
-                            ))}
+                            <div className="space-y-0.5">
+                              {room.team1.map((player: any) => (
+                                <div
+                                  key={player._id}
+                                  className="flex items-center gap-2"
+                                >
+                                  <img
+                                    src={
+                                      player.avatarUrl ||
+                                      "https://placehold.co/24x24"
+                                    }
+                                    alt=""
+                                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-full shrink-0"
+                                  />
+                                  <span className="text-xs text-gray-700 truncate">
+                                    {player.ingameName || player.username}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                         {/* Team 2 */}
@@ -1376,24 +1398,26 @@ export default function AdminPage() {
                             <div className="font-semibold text-red-700 text-xs mb-1">
                               Đội 2 ({room.team2.length})
                             </div>
-                            {room.team2.map((player: any) => (
-                              <div
-                                key={player._id}
-                                className="flex items-center gap-2 py-1"
-                              >
-                                <img
-                                  src={
-                                    player.avatarUrl ||
-                                    "https://placehold.co/24x24"
-                                  }
-                                  alt=""
-                                  className="w-6 h-6 rounded-full"
-                                />
-                                <span className="text-xs text-gray-700">
-                                  {player.ingameName || player.username}
-                                </span>
-                              </div>
-                            ))}
+                            <div className="space-y-0.5">
+                              {room.team2.map((player: any) => (
+                                <div
+                                  key={player._id}
+                                  className="flex items-center gap-2"
+                                >
+                                  <img
+                                    src={
+                                      player.avatarUrl ||
+                                      "https://placehold.co/24x24"
+                                    }
+                                    alt=""
+                                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-full shrink-0"
+                                  />
+                                  <span className="text-xs text-gray-700 truncate">
+                                    {player.ingameName || player.username}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>

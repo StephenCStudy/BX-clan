@@ -241,7 +241,9 @@ export default function ProfilePage() {
     lane: "",
   });
   const [admins, setAdmins] = useState<
-    Array<{ _id: string; username: string; role: string }>
+    Array<{
+      ingameName: string; _id: string; username: string; role: string 
+}>
   >([]);
   const [selectedAdmin, setSelectedAdmin] = useState<string>("");
   const [messages, setMessages] = useState<
@@ -628,11 +630,19 @@ export default function ProfilePage() {
                 value={selectedAdmin}
                 onChange={(e) => setSelectedAdmin(e.target.value)}
               >
-                {admins.map((a) => (
-                  <option key={a._id} value={a._id}>
-                    {a.username}
-                  </option>
-                ))}
+                {admins.map((a) => {
+                  const roleLabel =
+                    a.role === "leader"
+                      ? "👑 Tộc trưởng"
+                      : a.role === "organizer"
+                      ? "⭐ Tổ chức"
+                      : "🛡️ Điều hành";
+                  return (
+                    <option key={a._id} value={a._id}>
+                      {roleLabel} - {a.ingameName || a.username}
+                    </option>
+                  );
+                })}
               </select>
             </div>
             <div className="h-64 overflow-y-auto rounded-lg bg-gray-50 p-3 mb-3 space-y-2 border-2 border-gray-200">

@@ -11,9 +11,17 @@ router.get("/", async (req, res, next) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 7;
     const search = (req.query.search as string) || "";
+    const status = req.query.status as string;
     const skip = (page - 1) * limit;
 
-    const query = search ? { title: { $regex: search, $options: "i" } } : {};
+    const query: any = search
+      ? { title: { $regex: search, $options: "i" } }
+      : {};
+
+    // Add status filter if provided and not "all"
+    if (status && status !== "all") {
+      query.status = status;
+    }
 
     const total = await CustomRoom.countDocuments(query);
     const items = await CustomRoom.find(query)

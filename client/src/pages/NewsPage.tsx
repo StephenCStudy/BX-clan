@@ -67,11 +67,29 @@ export default function NewsPage() {
     }
   };
 
+  const deleteNews = async (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm("Đồng ý xóa bài viết này?")) return;
+    try {
+      await http.delete(`/news/${id}`);
+      toast.success("Đã xóa bài viết");
+      loadNews();
+    } catch {
+      toast.error("Lỗi xóa bài viết");
+    }
+  };
+
   if (loading)
     return <div className="text-center py-10 text-gray-600">Đang tải...</div>;
 
   const canCreate =
     user && (user.role === "leader" || user.role === "organizer");
+  const canDelete =
+    user &&
+    (user.role === "leader" ||
+      user.role === "organizer" ||
+      user.role === "moderator");
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -165,21 +183,31 @@ export default function NewsPage() {
 
       <div className="space-y-4">
         {news.map((n) => (
-          <Link
+          <div
             key={n._id}
-            to={`/news/${n._id}`}
-            className="block bg-white rounded-xl border-2 border-gray-200 p-4 md:p-5 hover:border-red-500 hover:shadow-lg transition"
+            className="relative bg-white rounded-xl border-2 border-gray-200 hover:border-red-500 hover:shadow-lg transition"
           >
-            <h3 className="font-semibold text-base md:text-xl mb-2 text-gray-900">
-              {n.title}
-            </h3>
-            <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mb-3">
-              {n.content}
-            </p>
-            <p className="text-xs text-gray-500">
-              {new Date(n.createdAt).toLocaleString("vi-VN")}
-            </p>
-          </Link>
+            <Link to={`/news/${n._id}`} className="block p-4 md:p-5">
+              <h3 className="font-semibold text-base md:text-xl mb-2 text-gray-900">
+                {n.title}
+              </h3>
+              <p className="text-gray-600 text-xs md:text-sm line-clamp-2 mb-3">
+                {n.content}
+              </p>
+              <p className="text-xs text-gray-500">
+                {new Date(n.createdAt).toLocaleString("vi-VN")}
+              </p>
+            </Link>
+            {canDelete && (
+              <button
+                onClick={(e) => deleteNews(n._id, e)}
+                className="absolute top-3 right-3 p-2 bg-red-100 hover:bg-red-600 text-red-600 hover:text-white rounded-lg transition"
+                title="Xóa bài viết"
+              >
+                🗑️
+              </button>
+            )}
+          </div>
         ))}
       </div>
 

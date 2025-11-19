@@ -1,25 +1,36 @@
 import { useEffect, useRef, useState } from "react";
 import { http } from "../utils/http";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import * as XLSX from "xlsx";
+import { getRankColors, getLaneColors } from "../utils/rankLaneColors";
+import { getRoleDisplay } from "../utils/roleTranslation";
+import ConfirmModal from "../components/ConfirmModal";
 
 interface Member {
   _id: string;
   username: string;
   ingameName: string;
   role: string;
+  rank?: string;
+  lane?: string;
   avatarUrl?: string;
   joinDate: string;
 }
 
 export default function MembersPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Member | null>(null);
+  const [confirmKick, setConfirmKick] = useState<Member | null>(null);
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [query, setQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const PAGE_SIZE = 7;
 
   useEffect(() => {
     http
@@ -32,28 +43,23 @@ export default function MembersPage() {
   if (loading)
     return <div className="text-center py-10 text-gray-600">Đang tải...</div>;
 
-  const isLeader = user?.role === "leader";
+  const canManage =
+    user &&
+    (user.role === "leader" ||
+      user.role === "organizer" ||
+      user.role === "moderator");
 
   const viewMember = (m: Member) => setSelected(m);
 
-  const kickMember = async (m: Member) => {
-    if (!confirm(`Kick ${m.username} khỏi clan?`)) return;
+  const kickMember = async () => {
+    if (!confirmKick) return;
     try {
-      await http.post(`/members/${m._id}/kick`);
-      setMembers((prev) => prev.filter((x) => x._id !== m._id));
+      await http.delete(`/members/${confirmKick._id}`);
+      setMembers((prev) => prev.filter((x) => x._id !== confirmKick._id));
+      toast.success("Đã kick thành viên");
+      setConfirmKick(null);
     } catch (e) {
       toast.error("Không kick được thành viên này");
-    }
-  };
-
-  const deleteMember = async (m: Member) => {
-    if (!confirm(`Xóa tài khoản ${m.username}? Hành động không thể hoàn tác.`))
-      return;
-    try {
-      await http.delete(`/members/${m._id}`);
-      setMembers((prev) => prev.filter((x) => x._id !== m._id));
-    } catch (e) {
-      toast.error("Không xóa được tài khoản này");
     }
   };
 
@@ -63,6 +69,8 @@ export default function MembersPage() {
         Username: m.username,
         IngameName: m.ingameName,
         Role: m.role,
+        Rank: m.rank || "",
+        Lane: m.lane || "",
         JoinDate: new Date(m.joinDate).toISOString().slice(0, 10),
       }));
       const sheet = XLSX.utils.json_to_sheet(rows);
@@ -130,37 +138,69 @@ export default function MembersPage() {
           : "bg-gray-100 text-gray-800 border-gray-300"
       }`}
     >
-      {role}
+      {getRoleDisplay(role)}
     </span>
   );
 
+  // Derived: filtered + sorted + paginated
+  const normalizedQuery = query.trim().toLowerCase();
+  const filtered = members.filter((m) => {
+    const matchName = normalizedQuery
+      ? (m.ingameName || "").toLowerCase().includes(normalizedQuery) ||
+        (m.username || "").toLowerCase().includes(normalizedQuery)
+      : true;
+    const matchRole = roleFilter === "all" ? true : m.role === roleFilter;
+    return matchName && matchRole;
+  });
+
+  // Sort by priority: admin roles → current user → other members
+  const sorted = [...filtered].sort((a, b) => {
+    const roleOrder = { leader: 1, organizer: 2, moderator: 3, member: 4 };
+    const aRole = roleOrder[a.role as keyof typeof roleOrder] || 5;
+    const bRole = roleOrder[b.role as keyof typeof roleOrder] || 5;
+
+    // If same role, prioritize current user
+    if (aRole === bRole) {
+      if (a._id === user?.id) return -1;
+      if (b._id === user?.id) return 1;
+      return 0;
+    }
+
+    return aRole - bRole;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = sorted.slice(start, start + PAGE_SIZE);
+
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-6">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 mb-6">
+      <div className="flex flex-row items-center justify-between gap-2 mb-6">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-red-600">
           Thành viên Clan ({members.length})
         </h1>
         {(user?.role === "leader" || user?.role === "organizer") && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-row gap-2">
             <button
               onClick={exportMembers}
-              className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold shadow"
+              className="px-2 md:px-3 py-1 md:py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs md:text-sm font-semibold shadow"
               title="Xuất Excel"
             >
-              ⬇️ Xuất Excel
+              <i className="fa-solid fa-download"></i>
             </button>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow"
+              className="px-2 md:px-3 py-1 md:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs md:text-sm font-semibold shadow"
               title="Nhập dữ liệu từ Excel"
             >
-              ⬆️ Nhập dữ liệu
+              <i className="fa-solid fa-upload"></i>
             </button>
             <Link
               to="/admin"
-              className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold shadow"
+              className="px-2 md:px-3 py-1 md:py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs md:text-sm font-semibold shadow"
             >
-              Quản lý
+              QL
             </Link>
             <input
               ref={fileInputRef}
@@ -173,41 +213,84 @@ export default function MembersPage() {
         )}
       </div>
 
+      {/* Toolbar: search + role filter */}
+      <div className="mb-4 flex flex-row gap-2 items-center justify-between">
+        <div className="flex-1 flex gap-2">
+          <div className="relative flex-1 min-w-[220px]">
+            <input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setSearchParams({ page: "1" });
+              }}
+              placeholder="Tìm theo tên..."
+              className="w-full p-2 md:p-3 text-sm bg-white rounded-lg border-2 border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-200"
+            />
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+              ⌕
+            </span>
+          </div>
+          <select
+            value={roleFilter}
+            onChange={(e) => {
+              setRoleFilter(e.target.value);
+              setSearchParams({ page: "1" });
+            }}
+            className="px-3 py-2 bg-white rounded-lg border-2 border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-200"
+          >
+            <option value="all">Tất cả vai trò</option>
+            <option value="leader">Trưởng Clan</option>
+            <option value="organizer">Ban Tổ Chức</option>
+            <option value="moderator">Quản Trị Viên</option>
+            <option value="member">Thành Viên</option>
+          </select>
+        </div>
+        <div className="text-xs md:text-sm text-gray-600 hidden sm:block">
+          {sorted.length} kết quả • Trang {currentPage}/{totalPages}
+        </div>
+      </div>
+
       <div className="overflow-x-auto bg-white rounded-xl border-2 border-gray-200 shadow-sm">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-2 sm:px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="px-2 md:px-3 py-2 md:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Thành viên
               </th>
-              <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="hidden md:table-cell px-2 md:px-3 py-2 md:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Tên trong game
               </th>
-              <th className="hidden sm:table-cell px-2 sm:px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="hidden lg:table-cell px-2 md:px-3 py-2 md:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                HẠNG
+              </th>
+              <th className="hidden lg:table-cell px-2 md:px-3 py-2 md:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                VỊ TRÍ
+              </th>
+              <th className="hidden sm:table-cell px-2 md:px-3 py-2 md:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Vai trò
               </th>
-              <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="hidden xl:table-cell px-2 md:px-3 py-2 md:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Tham gia
               </th>
-              {isLeader && (
-                <th className="px-2 sm:px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              {canManage && (
+                <th className="px-2 md:px-3 py-2 md:py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Hành động
                 </th>
               )}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {members.map((m) => (
+            {pageItems.map((m) => (
               <tr key={m._id} className="hover:bg-gray-50">
-                <td className="px-2 sm:px-4 py-3 whitespace-nowrap">
-                  <div className="flex items-center gap-2 sm:gap-3">
+                <td className="px-2 md:px-3 py-2 md:py-3 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
                     <img
                       src={m.avatarUrl || "https://placehold.co/64x64"}
                       alt={m.username}
-                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-red-600"
+                      className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border-2 border-red-600"
                     />
                     <div>
-                      <div className="font-semibold text-gray-900 text-sm sm:text-base">
+                      <div className="font-semibold text-gray-900 text-xs md:text-sm">
                         {m.username}
                       </div>
                       <div className="text-xs text-gray-500 md:hidden">
@@ -219,38 +302,37 @@ export default function MembersPage() {
                     </div>
                   </div>
                 </td>
-                <td className="hidden md:table-cell px-4 py-3 text-gray-800">
+                <td className="hidden md:table-cell px-2 md:px-3 py-2 md:py-3 text-xs md:text-sm text-gray-800">
                   {m.ingameName}
                 </td>
-                <td className="hidden sm:table-cell px-2 sm:px-4 py-3">
+                <td className="hidden lg:table-cell px-2 md:px-3 py-2 md:py-3 text-gray-700">
+                  <span className="text-xs md:text-sm">{m.rank || "—"}</span>
+                </td>
+                <td className="hidden lg:table-cell px-2 md:px-3 py-2 md:py-3 text-gray-700">
+                  <span className="text-xs">{m.lane || "—"}</span>
+                </td>
+                <td className="hidden sm:table-cell px-2 md:px-3 py-2 md:py-3">
                   {roleBadge(m.role)}
                 </td>
-                <td className="hidden lg:table-cell px-4 py-3 text-gray-700">
+                <td className="hidden xl:table-cell px-2 md:px-3 py-2 md:py-3 text-xs md:text-sm text-gray-700">
                   {new Date(m.joinDate).toLocaleDateString("vi-VN")}
                 </td>
-                {isLeader && (
-                  <td className="px-2 sm:px-4 py-3">
+                {canManage && (
+                  <td className="px-2 md:px-3 py-2 md:py-3">
                     <div className="flex items-center justify-end gap-1 sm:gap-2">
                       <button
                         onClick={() => viewMember(m)}
-                        className="px-2 sm:px-3 py-1 sm:py-1.5 bg-white border-2 border-gray-300 hover:border-gray-400 rounded-lg text-gray-800 text-xs sm:text-sm font-medium transition"
-                        title="Xem"
+                        className="px-2 md:px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs md:text-sm font-medium transition"
+                        title="Xem chi tiết"
                       >
-                        Xem
+                        <i className="fa-regular fa-eye"></i> Xem
                       </button>
                       <button
-                        onClick={() => kickMember(m)}
-                        className="px-2 sm:px-3 py-1 sm:py-1.5 bg-yellow-100 hover:bg-yellow-200 text-yellow-900 rounded-lg text-xs sm:text-sm font-semibold transition"
+                        onClick={() => setConfirmKick(m)}
+                        className="px-2 md:px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs md:text-sm font-semibold transition"
                         title="Kick khỏi clan"
                       >
-                        Kick
-                      </button>
-                      <button
-                        onClick={() => deleteMember(m)}
-                        className="px-2 sm:px-3 py-1 sm:py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs sm:text-sm font-bold transition"
-                        title="Xóa tài khoản"
-                      >
-                        Xóa
+                        <i className="fa-solid fa-ban"></i> Kick
                       </button>
                     </div>
                   </td>
@@ -259,6 +341,41 @@ export default function MembersPage() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination */}
+      <div className="mt-4 flex items-center justify-center gap-2">
+        <button
+          disabled={currentPage <= 1}
+          onClick={() =>
+            setSearchParams({ page: String(Math.max(1, currentPage - 1)) })
+          }
+          className={`px-3 py-1.5 rounded-lg border-2 text-sm font-medium ${
+            currentPage <= 1
+              ? "border-gray-200 text-gray-400 cursor-not-allowed"
+              : "border-gray-300 hover:border-gray-400"
+          }`}
+        >
+          Trước
+        </button>
+        <span className="text-sm text-gray-700">
+          {currentPage}/{totalPages}
+        </span>
+        <button
+          disabled={currentPage >= totalPages}
+          onClick={() =>
+            setSearchParams({
+              page: String(Math.min(totalPages, currentPage + 1)),
+            })
+          }
+          className={`px-3 py-1.5 rounded-lg border-2 text-sm font-medium ${
+            currentPage >= totalPages
+              ? "border-gray-200 text-gray-400 cursor-not-allowed"
+              : "border-gray-300 hover:border-gray-400"
+          }`}
+        >
+          Sau
+        </button>
       </div>
 
       {selected && (
@@ -291,9 +408,67 @@ export default function MembersPage() {
                   </div>
                 </div>
               </div>
-              <div className="text-sm text-gray-700 space-y-1">
+              <div className="text-sm text-gray-700 space-y-2">
                 <div className="flex items-center gap-2">
                   Vai trò: {roleBadge(selected.role)}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div
+                    className={`rounded-lg p-3 border-2 ${
+                      selected.rank
+                        ? `${getRankColors(selected.rank).bg} ${
+                            getRankColors(selected.rank).border
+                          }`
+                        : "bg-gray-50 border-gray-200"
+                    }`}
+                  >
+                    <div
+                      className={`text-xs font-semibold mb-1 ${
+                        selected.rank
+                          ? getRankColors(selected.rank).text
+                          : "text-gray-600"
+                      }`}
+                    >
+                      HẠNG
+                    </div>
+                    <div
+                      className={`text-sm font-bold ${
+                        selected.rank
+                          ? getRankColors(selected.rank).text
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {selected.rank || "Chưa cập nhật"}
+                    </div>
+                  </div>
+                  <div
+                    className={`rounded-lg p-3 border-2 ${
+                      selected.lane
+                        ? `${getLaneColors(selected.lane).bg} ${
+                            getLaneColors(selected.lane).border
+                          }`
+                        : "bg-gray-50 border-gray-200"
+                    }`}
+                  >
+                    <div
+                      className={`text-xs font-semibold mb-1 ${
+                        selected.lane
+                          ? getLaneColors(selected.lane).text
+                          : "text-gray-600"
+                      }`}
+                    >
+                      VỊ TRÍ
+                    </div>
+                    <div
+                      className={`text-sm font-bold ${
+                        selected.lane
+                          ? getLaneColors(selected.lane).text
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {selected.lane || "Chưa cập nhật"}
+                    </div>
+                  </div>
                 </div>
                 <p>
                   Tham gia:{" "}
@@ -305,6 +480,16 @@ export default function MembersPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={!!confirmKick}
+        title="Xác nhận kick thành viên"
+        message={`Bạn có chắc chắn muốn kick ${confirmKick?.username} khỏi clan? Thành viên này sẽ bị xóa khỏi dữ liệu.`}
+        confirmText="Kick"
+        cancelText="Hủy"
+        onConfirm={kickMember}
+        onClose={() => setConfirmKick(null)}
+      />
     </div>
   );
 }

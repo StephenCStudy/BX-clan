@@ -1,31 +1,245 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { upload } from "../../utils";
 import { http } from "../../utils/http";
 import { toast } from "react-toastify";
 import { io, Socket } from "socket.io-client";
+import { getRankColors, getLaneColors } from "../../utils/rankLaneColors";
+import NotificationModal from "../../components/NotificationModal";
+
+type EditModalProps = {
+  open: boolean;
+  onClose: () => void;
+  form: { ingameName: string; rank: string; lane: string };
+  setForm: (v: { ingameName: string; rank: string; lane: string }) => void;
+  onSave: () => void;
+};
+
+function EditProfileModal({
+  open,
+  onClose,
+  form,
+  setForm,
+  onSave,
+}: EditModalProps) {
+  if (!open) return null;
+  const rankOptions = [
+    { key: "Đồng", icon: "⚫", label: "Đồng" },
+    { key: "Bạc", icon: "🟤", label: "Bạc" },
+    { key: "Vàng", icon: "⚪", label: "Vàng" },
+    { key: "Bạch Kim", icon: "🟡", label: "Bạch Kim" },
+    { key: "Lục Bảo", icon: "🔵", label: "Lục Bảo" },
+    { key: "Kim Cương", icon: "💎", label: "Kim Cương" },
+    { key: "Cao Thủ", icon: "🟣", label: "Cao Thủ" },
+    { key: "Đại Cao Thủ", icon: "🔴", label: "Đại Cao Thủ" },
+    { key: "Thách Đấu", icon: "⭐", label: "Thách Đấu" },
+    { key: "Tối Cao", icon: "👑", label: "Tối Cao" },
+  ];
+  const laneOptions = [
+    { key: "Baron", icon: "🛡️", label: "Baron" },
+    { key: "Rừng", icon: "🌲", label: "Rừng" },
+    { key: "Giữa", icon: "⚡", label: "Giữa" },
+    { key: "Rồng", icon: "🐉", label: "Rồng" },
+    { key: "Hỗ Trợ", icon: "💚", label: "Hỗ Trợ" },
+  ];
+
+  const selectedLanes = form.lane
+    ? form.lane.split(",").map((l) => l.trim())
+    : [];
+
+  const toggleLane = (laneKey: string) => {
+    if (selectedLanes.includes(laneKey)) {
+      const newLanes = selectedLanes.filter((l) => l !== laneKey);
+      setForm({ ...form, lane: newLanes.join(", ") });
+    } else {
+      if (selectedLanes.length < 2) {
+        const newLanes = [...selectedLanes, laneKey];
+        setForm({ ...form, lane: newLanes.join(", ") });
+      }
+    }
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/50"
+        onClick={onClose}
+        aria-hidden
+      />
+      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border-2 border-gray-200 overflow-hidden">
+        <div className="bg-linear-to-r from-purple-500 via-pink-500 to-red-500 p-5">
+          <h3 className="text-2xl font-bold text-white">Chỉnh sửa hồ sơ</h3>
+        </div>
+        <div className="p-6 space-y-5">
+          <div>
+            <label className="block mb-2 text-sm font-semibold text-gray-700">
+              Tên trong game
+            </label>
+            <input
+              className="w-full p-3 bg-gray-50 rounded-lg border-2 border-gray-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 text-gray-900"
+              value={form.ingameName}
+              onChange={(e) => setForm({ ...form, ingameName: e.target.value })}
+              placeholder="VD: PlayerName#123"
+            />
+          </div>
+          <div>
+            <label className="block mb-2 text-sm font-semibold text-gray-700">
+              Hạng
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {rankOptions.map((r) => (
+                <button
+                  key={r.key}
+                  type="button"
+                  onClick={() => setForm({ ...form, rank: r.key })}
+                  className={`px-3 py-2.5 rounded-lg border-2 text-sm font-medium transition ${
+                    form.rank === r.key
+                      ? "border-purple-500 bg-purple-50 text-purple-700"
+                      : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+                  }`}
+                >
+                  <span className="block text-xl">{r.icon}</span>
+                  <span>{r.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block mb-2 text-sm font-semibold text-gray-700">
+              Vị Trí (Chọn 1-2)
+            </label>
+            <div className="grid grid-cols-5 gap-2">
+              {laneOptions.map((l) => (
+                <button
+                  key={l.key}
+                  type="button"
+                  onClick={() => toggleLane(l.key)}
+                  className={`px-2 py-2.5 rounded-lg border-2 text-sm font-medium transition ${
+                    selectedLanes.includes(l.key)
+                      ? "border-pink-500 bg-pink-50 text-pink-700"
+                      : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+                  }`}
+                >
+                  <span className="block text-xl">{l.icon}</span>
+                  <span>{l.label}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Đã chọn: {selectedLanes.length}/2
+            </p>
+          </div>
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              onClick={onClose}
+              className="px-5 py-2.5 rounded-lg border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-medium"
+            >
+              Hủy
+            </button>
+            <button
+              onClick={onSave}
+              className="px-5 py-2.5 rounded-lg bg-linear-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold shadow-lg"
+            >
+              Lưu thay đổi
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type AvatarModalProps = {
+  open: boolean;
+  onClose: () => void;
+  currentAvatar: string;
+  onUpload: (file: File) => void;
+  uploading: boolean;
+};
+
+function AvatarModal({
+  open,
+  onClose,
+  currentAvatar,
+  onUpload,
+  uploading,
+}: AvatarModalProps) {
+  if (!open) return null;
+  const [preview, setPreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/50"
+        onClick={onClose}
+        aria-hidden
+      />
+      <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border-2 border-gray-200">
+        <div className="bg-linear-to-r from-blue-500 via-purple-500 to-pink-500 p-5">
+          <h3 className="text-2xl font-bold text-white">Thay đổi avatar</h3>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="flex justify-center">
+            <img
+              src={preview || currentAvatar || "https://placehold.co/160x160"}
+              alt="avatar"
+              className="w-40 h-40 rounded-full object-cover border-4 border-purple-500 shadow-xl"
+            />
+          </div>
+          <label className="block">
+            <div className="w-full py-3 px-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-purple-500 text-center cursor-pointer bg-gray-50 hover:bg-purple-50 transition">
+              <span className="text-purple-600 font-semibold">
+                📷 Chọn ảnh mới
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setSelectedFile(file);
+                    const reader = new FileReader();
+                    reader.onload = () => setPreview(reader.result as string);
+                    reader.readAsDataURL(file);
+                  }
+                }}
+              />
+            </div>
+          </label>
+          <div className="flex items-center justify-end gap-3">
+            <button
+              onClick={onClose}
+              disabled={uploading}
+              className="px-5 py-2.5 rounded-lg border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-medium disabled:opacity-50"
+            >
+              Hủy
+            </button>
+            <button
+              onClick={() => {
+                if (selectedFile) onUpload(selectedFile);
+              }}
+              disabled={!selectedFile || uploading}
+              className="px-5 py-2.5 rounded-lg bg-linear-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold shadow-lg disabled:opacity-50"
+            >
+              {uploading ? "Đang tải..." : "Cập nhật"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth();
   const [uploading, setUploading] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const [form, setForm] = useState({
     ingameName: "",
     rank: "",
     lane: "",
   });
-  const rankOptions = [
-    "Iron",
-    "Bronze",
-    "Silver",
-    "Gold",
-    "Platinum",
-    "Diamond",
-    "Master",
-    "Grandmaster",
-    "Challenger",
-  ];
-  const laneOptions = ["Top", "Jungle", "Mid", "ADC", "Support"];
   const [admins, setAdmins] = useState<
     Array<{ _id: string; username: string }>
   >([]);
@@ -34,25 +248,62 @@ export default function ProfilePage() {
     Array<{ user?: any; message: string; createdAt?: string }>
   >([]);
   const [text, setText] = useState("");
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const SOCKET_URL = useMemo(
     () => import.meta.env.VITE_SOCKET_URL || "http://localhost:5000",
     []
   );
 
-  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleAvatarUpload = async (file: File) => {
     setUploading(true);
     try {
       const url = await upload.image(file);
+      if (!url) {
+        throw new Error("Upload không trả về URL");
+      }
       await http.put("/auth/me/avatar", { avatarUrl: url });
       await refreshUser();
       toast.success("Cập nhật avatar thành công");
-    } catch (err) {
-      toast.error("Upload thất bại");
+      setAvatarModalOpen(false);
+    } catch (err: any) {
+      console.error("Avatar upload error:", err);
+      toast.error(err?.message || "Upload thất bại");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      await http.put("/auth/me", form);
+      await refreshUser();
+      toast.success("Đã cập nhật thông tin");
+      setEditModalOpen(false);
+    } catch {
+      toast.error("Không thể cập nhật");
+    }
+  };
+
+  const handleMarkNotificationRead = async (id: string) => {
+    try {
+      await http.put(`/notifications/${id}/read`);
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
+      );
+    } catch {
+      toast.error("Lỗi đánh dấu đã đọc");
+    }
+  };
+
+  const handleDeleteNotification = async (id: string) => {
+    try {
+      await http.delete(`/notifications/${id}`);
+      setNotifications((prev) => prev.filter((n) => n._id !== id));
+      toast.success("Đã xóa thông báo");
+    } catch {
+      toast.error("Lỗi xóa thông báo");
     }
   };
 
@@ -75,6 +326,14 @@ export default function ProfilePage() {
         );
         setAdmins(list);
         if (list.length) setSelectedAdmin(list[0]._id);
+      })
+      .catch(() => {});
+
+    // Load notifications
+    http
+      .get("/notifications")
+      .then((res) => {
+        setNotifications(res.data || []);
       })
       .catch(() => {});
   }, []);
@@ -104,24 +363,26 @@ export default function ProfilePage() {
   }, [form.ingameName, form.rank, form.lane, user]);
 
   return (
-    <div className="max-w-5xl mx-auto p-4 sm:p-5 md:p-6">
-      {/* Header banner */}
+    <div className="max-w-6xl mx-auto p-4 sm:p-5 md:p-6">
       <div className="relative mb-6 md:mb-8">
-        <div className="h-40 rounded-2xl p-0.5 bg-linear-to-r from-rose-500 via-red-600 to-orange-500 shadow-xl">
-          <div className="h-full w-full rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-between px-6">
+        <div className="h-48 rounded-2xl bg-linear-to-r from-rose-500 via-red-600 to-orange-500 shadow-2xl overflow-hidden">
+          <div className="h-full w-full flex items-center justify-between px-6 bg-linear-to-b from-transparent to-black/20">
             <div>
-              <h1 className="text-3xl md:text-4xl font-extrabold text-white drop-shadow">
+              <h1
+                className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-white drop-shadow-lg"
+                style={{ color: "#ffffff" }}
+              >
                 {user.username}
               </h1>
               <div className="mt-2 flex items-center gap-2">
                 <span
-                  className={`inline-block px-3 py-1 rounded-lg text-sm font-semibold border-2 ${
+                  className={`inline-block px-2 md:px-3 py-1 rounded-lg text-xs md:text-sm font-semibold border-2 ${
                     user.role === "leader"
-                      ? "bg-yellow-400/20 text-yellow-100 border-yellow-300/60"
+                      ? "bg-yellow-400/30 text-yellow-50 border-yellow-300"
                       : user.role === "organizer"
-                      ? "bg-fuchsia-400/20 text-fuchsia-100 border-fuchsia-300/60"
+                      ? "bg-fuchsia-400/30 text-fuchsia-50 border-fuchsia-300"
                       : user.role === "moderator"
-                      ? "bg-cyan-400/20 text-cyan-100 border-cyan-300/60"
+                      ? "bg-cyan-400/30 text-cyan-50 border-cyan-300"
                       : "bg-white/20 text-white border-white/40"
                   }`}
                 >
@@ -130,12 +391,23 @@ export default function ProfilePage() {
                     : user.role === "organizer"
                     ? "🎯 Ban Tổ Chức"
                     : user.role === "moderator"
-                    ? "🛡️ Moderator"
+                    ? "🛡️ Quản Trị Viên"
                     : "👤 Thành Viên"}
                 </span>
+                <button
+                  onClick={() => setShowNotifications(true)}
+                  className="relative px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 border-2 border-white/40 text-white text-xs md:text-sm font-semibold transition"
+                >
+                  🔔 Thông báo
+                  {notifications.filter((n) => !n.isRead).length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                      {notifications.filter((n) => !n.isRead).length}
+                    </span>
+                  )}
+                </button>
               </div>
               {/* Mobile completeness */}
-              <div className="md:hidden mt-3 w-64 max-w-full">
+              <div className="md:hidden mt-3 w-48 max-w-full">
                 <div className="text-white text-xs mb-1 flex justify-between">
                   <span>Hồ sơ</span>
                   <span>{completeness}%</span>
@@ -164,251 +436,192 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border-2 border-gray-200 p-4 sm:p-5 md:p-6 shadow-lg">
-        <div className="flex flex-col lg:flex-row items-start gap-5 md:gap-6">
-          <div className="relative">
-            <img
-              src={user.avatarUrl || "https://placehold.co/120x120"}
-              alt="avatar"
-              className="w-24 h-24 md:w-28 md:h-28 rounded-full object-cover border-4 border-purple-500 shadow-lg"
-            />
-            <label className="absolute bottom-0 right-0 p-2 rounded-full cursor-pointer shadow-md bg-linear-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-              </svg>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={onFile}
-                className="hidden"
-                disabled={uploading}
-              />
-            </label>
-          </div>
-
-          <div className="flex-1 grid sm:grid-cols-2 gap-4 md:gap-6 w-full">
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm text-gray-600 font-medium">
-                  Username
-                </label>
-                <p className="text-lg font-semibold text-gray-900">
-                  {user.username}
-                </p>
-              </div>
-
-              {!editing ? (
-                <>
-                  <div>
-                    <label className="text-sm text-gray-600 font-medium">
-                      Tên trong game
-                    </label>
-                    <p className="text-lg text-gray-800">
-                      {form.ingameName || user.ingameName}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 md:gap-4">
-                    <div>
-                      <label className="text-sm text-gray-600 font-medium">
-                        Rank
-                      </label>
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-sm">
-                        {form.rank || "—"}
-                      </span>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-600 font-medium">
-                        Lane
-                      </label>
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-sm">
-                        {form.lane || "—"}
-                      </span>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <label className="text-sm text-gray-600 font-medium">
-                      Tên trong game
-                    </label>
-                    <input
-                      className="w-full p-2.5 bg-gray-50 rounded-lg border-2 border-gray-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                      value={form.ingameName}
-                      onChange={(e) =>
-                        setForm({ ...form, ingameName: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 md:gap-4">
-                    <div>
-                      <label className="text-sm text-gray-600 font-medium">
-                        Rank
-                      </label>
-                      <select
-                        className="w-full p-2.5 bg-gray-50 rounded-lg border-2 border-gray-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                        value={form.rank}
-                        onChange={(e) =>
-                          setForm({ ...form, rank: e.target.value })
-                        }
-                      >
-                        <option value="">Chọn rank</option>
-                        {rankOptions.map((r) => (
-                          <option key={r} value={r}>
-                            {r}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-600 font-medium">
-                        Lane
-                      </label>
-                      <select
-                        className="w-full p-2.5 bg-gray-50 rounded-lg border-2 border-gray-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-                        value={form.lane}
-                        onChange={(e) =>
-                          setForm({ ...form, lane: e.target.value })
-                        }
-                      >
-                        <option value="">Chọn lane</option>
-                        {laneOptions.map((l) => (
-                          <option key={l} value={l}>
-                            {l}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              <div>
-                <label className="text-sm text-gray-600 font-medium">
-                  Vai trò
-                </label>
-                <span
-                  className={`ml-2 inline-block px-3 py-1 rounded-lg text-sm font-semibold border-2 ${
-                    user.role === "leader"
-                      ? "bg-linear-to-r from-yellow-400 to-amber-500 text-white border-amber-600"
-                      : user.role === "organizer"
-                      ? "bg-linear-to-r from-purple-400 to-fuchsia-500 text-white border-fuchsia-600"
-                      : user.role === "moderator"
-                      ? "bg-linear-to-r from-blue-400 to-cyan-500 text-white border-cyan-600"
-                      : "bg-gray-100 text-gray-800 border-gray-300"
-                  }`}
-                >
-                  {user.role === "leader"
-                    ? "👑 Trưởng Clan"
-                    : user.role === "organizer"
-                    ? "🎯 Ban Tổ Chức"
-                    : user.role === "moderator"
-                    ? "🛡️ Moderator"
-                    : "👤 Thành Viên"}
-                </span>
-              </div>
-
-              <div className="pt-1 md:pt-2">
-                {!editing ? (
-                  <button
-                    onClick={() => setEditing(true)}
-                    className="px-4 py-2 rounded-lg text-white bg-linear-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 shadow"
-                  >
-                    Sửa thông tin
-                  </button>
-                ) : (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={async () => {
-                        try {
-                          await http.put("/auth/me", form);
-                          await refreshUser();
-                          toast.success("Đã cập nhật thông tin");
-                          setEditing(false);
-                        } catch {
-                          toast.error("Không thể cập nhật");
-                        }
-                      }}
-                      className="px-4 py-2 rounded-lg text-white bg-green-600 hover:bg-green-700 shadow"
-                    >
-                      Lưu
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditing(false);
-                        setForm({
-                          ingameName: user.ingameName || "",
-                          rank: (user as any).rank || "",
-                          lane: (user as any).lane || "",
-                        });
-                      }}
-                      className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 border"
-                    >
-                      Hủy
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Admin Chat */}
-            <div className="rounded-xl border-2 border-gray-200 p-4 bg-white w-full">
-              <h2 className="text-lg font-bold text-red-600 mb-3">
-                Liên hệ quản trị
-              </h2>
-              <div className="flex items-center gap-2 mb-3">
-                <label className="text-sm text-gray-600">Gửi tới:</label>
-                <select
-                  className="p-2 rounded border-2 border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200"
-                  value={selectedAdmin}
-                  onChange={(e) => setSelectedAdmin(e.target.value)}
-                >
-                  {admins.map((a) => (
-                    <option key={a._id} value={a._id}>
-                      {a.username}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="h-56 md:h-60 overflow-y-auto rounded bg-gray-50 p-3 mb-3 space-y-2">
-                {messages.length === 0 && (
-                  <p className="text-center text-gray-400 text-sm">
-                    Chưa có tin nhắn. Hãy bắt đầu cuộc trò chuyện!
-                  </p>
-                )}
-                {messages.map((m, idx) => (
-                  <div
-                    key={idx}
-                    className="bg-white border rounded p-2 text-sm"
-                  >
-                    <span className="font-semibold text-red-600">
-                      {m.user?.username || "Bạn"}
-                    </span>
-                    : {m.message}
-                  </div>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <input
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      if (!text.trim()) return;
-                      if (!socketRef.current) return;
-                      socketRef.current.emit("message:send", {
-                        message: text,
-                        to: selectedAdmin,
-                      });
-                      setText("");
-                    }
-                  }}
-                  className="flex-1 p-2 bg-gray-50 rounded border-2 border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200"
-                  placeholder="Nhập tin nhắn..."
+      {/* Main Grid */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-2xl border-2 border-gray-200 p-4 md:p-6 shadow-xl">
+            <div className="flex flex-row items-start gap-4 md:gap-6">
+              <div className="relative group">
+                <img
+                  src={user.avatarUrl || "https://placehold.co/140x140"}
+                  alt="avatar"
+                  className="w-20 h-20 md:w-32 md:h-32 rounded-2xl object-cover border-4 border-purple-500 shadow-lg"
                 />
                 <button
-                  onClick={() => {
+                  onClick={() => setAvatarModalOpen(true)}
+                  className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition"
+                >
+                  <svg
+                    className="w-6 h-6 md:w-8 md:h-8 text-white"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="flex-1 space-y-3 md:space-y-5">
+                <div>
+                  <h2 className="text-lg md:text-2xl font-bold text-gray-900 mb-1">
+                    {user.username}
+                  </h2>
+                  <span
+                    className={`inline-block px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm font-semibold ${
+                      user.role === "leader"
+                        ? "bg-linear-to-r from-yellow-400 to-amber-500 text-white shadow"
+                        : user.role === "organizer"
+                        ? "bg-linear-to-r from-purple-400 to-fuchsia-500 text-white shadow"
+                        : user.role === "moderator"
+                        ? "bg-linear-to-r from-blue-400 to-cyan-500 text-white shadow"
+                        : "bg-gray-100 text-gray-800 border-2 border-gray-300"
+                    }`}
+                  >
+                    {user.role === "leader"
+                      ? "👑 Trưởng Clan"
+                      : user.role === "organizer"
+                      ? "🎯 Ban Tổ Chức"
+                      : user.role === "moderator"
+                      ? "🛡️ Quản Trị Viên"
+                      : "👤 Thành Viên"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 md:gap-4">
+                  <div className="bg-linear-to-br from-purple-50 to-pink-50 rounded-xl p-2 md:p-4 border-2 border-purple-200">
+                    <div className="text-xs text-purple-600 font-semibold mb-1">
+                      TÊN TRONG GAME
+                    </div>
+                    <div className="text-sm md:text-lg font-bold text-gray-900 truncate">
+                      {user.ingameName || "Chưa cập nhật"}
+                    </div>
+                  </div>
+                  <div
+                    className={`rounded-xl p-2 md:p-4 border-2 ${
+                      (user as any).rank
+                        ? `${getRankColors((user as any).rank).bg} ${
+                            getRankColors((user as any).rank).border
+                          }`
+                        : "bg-linear-to-br from-gray-100 to-gray-200 border-gray-300"
+                    }`}
+                  >
+                    <div
+                      className={`text-xs font-semibold mb-1 ${
+                        (user as any).rank
+                          ? getRankColors((user as any).rank).text
+                          : "text-gray-600"
+                      }`}
+                    >
+                      HẠNG
+                    </div>
+                    <div
+                      className={`text-sm md:text-lg font-bold ${
+                        (user as any).rank
+                          ? getRankColors((user as any).rank).text
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {(user as any).rank || "—"}
+                    </div>
+                  </div>
+                  <div
+                    className={`rounded-xl p-2 md:p-4 border-2 ${
+                      (user as any).lane
+                        ? `${getLaneColors((user as any).lane).bg} ${
+                            getLaneColors((user as any).lane).border
+                          }`
+                        : "bg-linear-to-br from-gray-100 to-gray-200 border-gray-300"
+                    }`}
+                  >
+                    <div
+                      className={`text-xs font-semibold mb-1 ${
+                        (user as any).lane
+                          ? getLaneColors((user as any).lane).text
+                          : "text-gray-600"
+                      }`}
+                    >
+                      VỊ TRÍ
+                    </div>
+                    <div
+                      className={`text-sm md:text-lg font-bold ${
+                        (user as any).lane
+                          ? getLaneColors((user as any).lane).text
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {(user as any).lane || "—"}
+                    </div>
+                  </div>
+                  <div className="bg-linear-to-br from-green-50 to-emerald-50 rounded-xl p-2 md:p-4 border-2 border-green-200">
+                    <div className="text-xs text-green-600 font-semibold mb-1">
+                      HOÀN THIỆN
+                    </div>
+                    <div className="text-sm md:text-lg font-bold text-gray-900">
+                      {completeness}%
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setEditModalOpen(true)}
+                  className="w-full py-2 md:py-3 rounded-xl text-white text-sm md:text-base font-bold bg-linear-to-r from-purple-500 via-pink-500 to-red-500 hover:from-purple-600 hover:via-pink-600 hover:to-red-600 shadow-lg transition"
+                >
+                  ✏️ Chỉnh sửa hồ sơ
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Admin Chat Card */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-2xl border-2 border-gray-200 p-4 md:p-6 shadow-xl">
+            <h2 className="text-base md:text-xl font-bold text-red-600 mb-4 flex items-center gap-2">
+              <span>💬</span> Liên hệ quản trị
+            </h2>
+            <div className="mb-4">
+              <label className="block text-xs md:text-sm text-gray-600 font-medium mb-2">
+                Gửi tới:
+              </label>
+              <select
+                className="w-full p-2 md:p-2.5 text-sm rounded-lg border-2 border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200 bg-gray-50"
+                value={selectedAdmin}
+                onChange={(e) => setSelectedAdmin(e.target.value)}
+              >
+                {admins.map((a) => (
+                  <option key={a._id} value={a._id}>
+                    {a.username}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="h-64 overflow-y-auto rounded-lg bg-gray-50 p-3 mb-3 space-y-2 border-2 border-gray-200">
+              {messages.length === 0 && (
+                <p className="text-center text-gray-400 text-xs md:text-sm py-8">
+                  Chưa có tin nhắn. Hãy bắt đầu cuộc trò chuyện!
+                </p>
+              )}
+              {messages.map((m, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white rounded-lg border-2 border-gray-200 p-2 md:p-3 shadow-sm"
+                >
+                  <div className="font-semibold text-red-600 text-xs md:text-sm mb-1">
+                    {m.user?.username || "Bạn"}
+                  </div>
+                  <div className="text-gray-800 text-xs md:text-sm">
+                    {m.message}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
                     if (!text.trim()) return;
                     if (!socketRef.current) return;
                     socketRef.current.emit("message:send", {
@@ -416,24 +629,54 @@ export default function ProfilePage() {
                       to: selectedAdmin,
                     });
                     setText("");
-                  }}
-                  className="px-4 py-2 rounded text-white bg-red-600 hover:bg-red-700 shadow"
-                >
-                  Gửi
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Tin nhắn sẽ được gửi tới quản trị viên đã chọn.
-              </p>
+                  }
+                }}
+                className="flex-1 p-2 md:p-2.5 text-sm bg-gray-50 rounded-lg border-2 border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                placeholder="Nhập tin nhắn..."
+              />
+              <button
+                onClick={() => {
+                  if (!text.trim()) return;
+                  if (!socketRef.current) return;
+                  socketRef.current.emit("message:send", {
+                    message: text,
+                    to: selectedAdmin,
+                  });
+                  setText("");
+                }}
+                className="px-3 md:px-5 py-2 md:py-2.5 rounded-lg text-white text-sm bg-red-600 hover:bg-red-700 shadow-lg font-semibold"
+              >
+                Gửi
+              </button>
             </div>
+            <p className="text-xs text-gray-500 mt-3">
+              💡 Tin nhắn sẽ được gửi tới quản trị viên đã chọn.
+            </p>
           </div>
         </div>
-        {uploading && (
-          <p className="mt-4 text-center text-purple-600 font-medium">
-            Đang upload...
-          </p>
-        )}
       </div>
+
+      <EditProfileModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        form={form}
+        setForm={setForm}
+        onSave={handleSaveProfile}
+      />
+      <AvatarModal
+        open={avatarModalOpen}
+        onClose={() => setAvatarModalOpen(false)}
+        currentAvatar={user.avatarUrl || ""}
+        onUpload={handleAvatarUpload}
+        uploading={uploading}
+      />
+      <NotificationModal
+        open={showNotifications}
+        onClose={() => setShowNotifications(false)}
+        notifications={notifications}
+        onMarkRead={handleMarkNotificationRead}
+        onDelete={handleDeleteNotification}
+      />
     </div>
   );
 }

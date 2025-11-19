@@ -106,7 +106,7 @@ export default function Header() {
                   }`
                 }
               >
-                Profile
+                Cá nhân 
               </NavLink>
               {(user.role === "leader" || user.role === "organizer") && (
                 <Link
@@ -180,7 +180,7 @@ export default function Header() {
                 onClick={() => setIsMenuOpen(false)}
                 className="block py-2 hover:bg-red-800 rounded px-3 transition"
               >
-                Profile
+                Cá nhân
               </Link>
               {(user.role === "leader" || user.role === "organizer") && (
                 <Link

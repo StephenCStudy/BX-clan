@@ -8,7 +8,7 @@ const router = Router();
 router.get("/", async (_req, res, next) => {
   try {
     const members = await User.find()
-      .select("username ingameName role avatarUrl joinDate")
+      .select("username ingameName role avatarUrl joinDate rank lane")
       .sort({ joinDate: -1 });
     res.json(members);
   } catch (err) {
@@ -33,7 +33,7 @@ router.post("/invite", requireAuth, async (req: any, res, next) => {
 router.put(
   "/:id/role",
   requireAuth,
-  requireRoles("leader"),
+  requireRoles("leader", "organizer", "moderator"),
   async (req, res, next) => {
     try {
       const { role } = req.body;
@@ -54,7 +54,7 @@ router.put(
 router.delete(
   "/:id",
   requireAuth,
-  requireRoles("leader"),
+  requireRoles("leader", "organizer", "moderator"),
   async (req, res, next) => {
     try {
       await User.findByIdAndDelete(req.params.id);

@@ -8,6 +8,8 @@ export default function RegisterPage() {
   const [form, setForm] = useState({
     username: "",
     ingameName: "",
+    password: "",
+    confirmPassword: "",
   });
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -16,9 +18,21 @@ export default function RegisterPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.password !== form.confirmPassword) {
+      toast.error("Mật khẩu không khớp!");
+      return;
+    }
+    if (form.password.length < 6) {
+      toast.error("Mật khẩu phải ít nhất 6 ký tự!");
+      return;
+    }
     setLoading(true);
     try {
-      const res = await axios.post(`${API}/auth/register`, form);
+      const res = await axios.post(`${API}/auth/register`, {
+        username: form.username,
+        ingameName: form.ingameName,
+        password: form.password,
+      });
       login(res.data.token, res.data.user);
       navigate("/");
     } catch (err: any) {
@@ -36,7 +50,7 @@ export default function RegisterPage() {
       <form onSubmit={submit} className="space-y-4">
         <div>
           <label className="block mb-1 text-gray-700 font-medium">
-            Username
+            Tên đăng nhập
           </label>
           <input
             className="w-full p-3 bg-gray-50 rounded-lg border-2 border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200"
@@ -55,6 +69,34 @@ export default function RegisterPage() {
             value={form.ingameName}
             onChange={(e) => setForm({ ...form, ingameName: e.target.value })}
             placeholder="Tên hiển thị trong Wild Rift"
+            required
+          />
+        </div>
+        <div>
+          <label className="block mb-1 text-gray-700 font-medium">
+            Mật khẩu
+          </label>
+          <input
+            type="password"
+            className="w-full p-3 bg-gray-50 rounded-lg border-2 border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            placeholder="Ít nhất 6 ký tự"
+            required
+          />
+        </div>
+        <div>
+          <label className="block mb-1 text-gray-700 font-medium">
+            Xác nhận mật khẩu
+          </label>
+          <input
+            type="password"
+            className="w-full p-3 bg-gray-50 rounded-lg border-2 border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200"
+            value={form.confirmPassword}
+            onChange={(e) =>
+              setForm({ ...form, confirmPassword: e.target.value })
+            }
+            placeholder="Nhập lại mật khẩu"
             required
           />
         </div>

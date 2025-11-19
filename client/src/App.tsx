@@ -6,15 +6,18 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import HomePage from "./pages/home/HomePage";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import ProfilePage from "./pages/user/ProfilePage";
 
 import AdminPage from "./pages/admin/AdminPage";
+import RoomMembersPage from "./pages/admin/RoomMembersPage";
 import MembersPage from "./pages/MembersPage";
 import CustomsPage from "./pages/CustomsPage";
 import CustomDetailPage from "./pages/CustomDetailPage";
 import NewsPage from "./pages/NewsPage";
 import NewsDetailPage from "./pages/NewsDetailPage";
+import RegistrationPage from "./pages/RegistrationPage";
 
 export default function App() {
   return (
@@ -26,11 +29,20 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/members" element={<MembersPage />} />
             <Route path="/customs" element={<CustomsPage />} />
             <Route path="/customs/:id" element={<CustomDetailPage />} />
             <Route path="/news" element={<NewsPage />} />
             <Route path="/news/:id" element={<NewsDetailPage />} />
+            <Route
+              path="/registration"
+              element={
+                <ProtectedRoute>
+                  <RegistrationPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/profile"
               element={
@@ -44,6 +56,22 @@ export default function App() {
               element={
                 <ProtectedRoute roles={["leader", "organizer"]}>
                   <AdminPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/:tab"
+              element={
+                <ProtectedRoute roles={["leader", "organizer"]}>
+                  <AdminPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/rooms/:newsId/:roomId"
+              element={
+                <ProtectedRoute roles={["leader", "organizer", "moderator"]}>
+                  <RoomMembersPage />
                 </ProtectedRoute>
               }
             />

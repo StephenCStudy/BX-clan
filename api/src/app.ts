@@ -19,12 +19,36 @@ import { errorHandler } from "./utils/errorHandler.js";
 dotenv.config();
 
 const app = express();
-app.use(
-  cors({
-    origin: process.env.CORS_ORIGIN?.split(",") || "*",
-    credentials: true,
-  })
-);
+const allowedOrigins = process.env.CORS_ORIGIN?.split(",") || [
+  "https://bxclan.vercel.app",
+];
+
+const corsOptions = {
+  origin: (origin: any, callback: any) => {
+    if (!origin) return callback(null, true);
+    // Allow explicit origins from env
+    if (allowedOrigins.indexOf(origin) !== -1) return callback(null, true);
+    // Allow localhost for development
+    if (
+      origin === "http://localhost:5173" ||
+      origin === "http://localhost:3000"
+    )
+      return callback(null, true);
+    // Allow any vercel.app subdomain
+    try {
+      if (origin.endsWith(".vercel.app")) return callback(null, true);
+    } catch (e) {
+      // ignore
+    }
+    return callback(new Error("CORS policy: origin not allowed"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+};
+
+app.use(cors(corsOptions));
+// The global `cors` middleware above already handles preflight OPTIONS requests
+// so an explicit `app.options('*', ...)` is not required.
 app.use(express.json());
 app.use(cookieParser());
 
